@@ -74,7 +74,16 @@ namespace ChatClient.Net
 
             messagePacket.WriteOpCode(5); //Message opcode
             messagePacket.WriteMessage(message);
-            _client .Client.Send(messagePacket.GetPacketBytes());
+            _client.Client.Send(messagePacket.GetPacketBytes());
+        }
+
+        public void DisconnectFromServer(string uid)
+        {
+            var disconnectPacket = new PacketBuilder();
+
+            disconnectPacket.WriteOpCode(10); //Disconnect opcode
+            disconnectPacket.WriteMessage(uid);
+            _client.Client.Send(disconnectPacket.GetPacketBytes());
         }
     }
 }

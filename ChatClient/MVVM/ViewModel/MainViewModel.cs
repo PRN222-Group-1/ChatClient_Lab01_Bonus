@@ -32,12 +32,18 @@ namespace ChatClient.MVVM.ViewModel
             _server.messageReceivedEvent += MessageReceived;
             _server.userDisconnectedEvent += UserDisconnected;
             //Use Relay to unable the button after clicked once
-            ConnectToServerCommand = new RelayCommand(o => _server.ConnectToServer(Username),
+            ConnectToServerCommand = new RelayCommand(o => _server.ConnectToServer(Username ?? "hello"),
                 o => !string.IsNullOrEmpty(Username)
             );
-            SendMessageCommand = new RelayCommand(o => _server.SendMessageToServer(Message),
+            
+            SendMessageCommand = new RelayCommand(
+                                o =>
+                                {
+                                    _server.SendMessageToServer(Message);
+                                },
                                 o => !string.IsNullOrEmpty(Message)
             );
+
         }
 
         private void UserDisconnected()
