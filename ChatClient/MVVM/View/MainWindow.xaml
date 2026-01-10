@@ -48,52 +48,111 @@
         <!-- ================= VÙNG PHẢI ================= -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
-                <!-- Chat -->
+                <!-- Chat history -->
                 <RowDefinition Height="*"/>
                 <!-- Input -->
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Vùng hiển thị tin nhắn -->
-            <ScrollViewer Grid.Row="0"
-                          Margin="10"
-                          VerticalScrollBarVisibility="Auto">
-                <ListView x:Name="MessagesPanel"
-                            ItemsSource="{Binding Messages}"/>
-            </ScrollViewer>
+            <!-- ===== LỊCH SỬ CHAT ===== -->
+            <Border Grid.Row="0"
+            Margin="10"
+            BorderBrush="#DDD"
+            BorderThickness="1"
+            CornerRadius="5">
 
-            <!-- Thanh nhập + gửi -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ListBox ItemsSource="{Binding Messages}"
+                     FontFamily="Segoe UI Emoji"
+                     FontSize="14"/>
+                </ScrollViewer>
+
+            </Border>
+
+            <!-- ===== INPUT + EMOJI + SEND ===== -->
             <Border Grid.Row="1"
-                    BorderBrush="LightGray"
-                    BorderThickness="1,0,0,0"
-                    Padding="10">
+            BorderBrush="LightGray"
+            BorderThickness="1,0,0,0"
+            Padding="10">
 
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
+                    <!-- Input -->
                     <TextBox x:Name="InputBox"
-                             Grid.Column="0"
-                             Height="40"
-                             Padding="10"
-                             VerticalContentAlignment="Center"
-                             TextWrapping="Wrap"
-                             Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}"/>
+                     Grid.Column="0"
+                     Height="40"
+                     Padding="10"
+                     VerticalContentAlignment="Center"
+                     FontFamily="Segoe UI Emoji"
+                     Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     AcceptsReturn="False"/>
 
+                    <!-- Emoji button -->
                     <Button Grid.Column="1"
-                            Margin="10,0,0,0"
-                            Padding="20,6"
-                            Background="#0144DB"
-                            Foreground="White"
-                            FontWeight="Bold"
-                            FontSize="16"
-                            BorderThickness="0"
-                            Cursor="Hand"
-                            Command="{Binding SendMessageCommand}">
-                            Gửi
+                    Content="😊"
+                    FontSize="20"
+                    Width="40"
+                    Command="{Binding ToggleEmojiPanelCommand}"/>       
+
+
+                    <!-- Send -->
+                    <Button Grid.Column="2"
+                    IsDefault="True"
+                    Margin="10,0,0,0"
+                    Padding="20,6"
+                    Background="#0144DB"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    FontSize="16"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Command="{Binding SendMessageCommand}">
+                        Gửi
                     </Button>
+
+                    <!-- ===== EMOJI POPUP ===== -->
+                    <Popup IsOpen="{Binding IsEmojiOpen}"
+                           Placement="Top"
+                           PlacementTarget="{Binding ElementName=InputBox}"
+                           StaysOpen="False">
+
+                        <Border Background="White"
+                            BorderBrush="Gray"
+                            BorderThickness="1"
+                            Width="300"
+                            Height="250">
+
+                            <ScrollViewer>
+                                <ItemsControl ItemsSource="{Binding Emojis}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Content="{Binding Emoji}"
+                                            FontSize="20"
+                                            Width="40"
+                                            Height="40"
+                                            Command="{Binding DataContext.InsertEmojisCommand,
+                                                      RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                        </Border>
+                    </Popup>
 
                 </Grid>
             </Border>

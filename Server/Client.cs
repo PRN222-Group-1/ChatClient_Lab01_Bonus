@@ -31,18 +31,17 @@ namespace ChatServer
 
         void Process()
         {
-            while(true)
+            while(ClientSocket.Connected)
             {
                 try
                 {
                     var opcode = _packetReader.ReadByte();
-                    Username = _packetReader.ReadMessage();
                     switch (opcode)
                     {
                         case 5: 
                             var message = _packetReader.ReadMessage();
                             Console.WriteLine($"{DateTime.Now}: {Username}: {message}");
-                            Program.BroadcastMessage($"{DateTime.Now} [{Username}]:  {message}");
+                            Program.BroadcastMessage($"{DateTime.Now} {Username}:  {message}");
                             break;
                         default:
                             break;

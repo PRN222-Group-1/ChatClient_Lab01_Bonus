@@ -25,7 +25,7 @@ namespace ChatClient.Net.IO
             //reseave 4 bytes for length of the message
             var msgLength = msg.Length;
             _ms.Write(BitConverter.GetBytes(msgLength));
-            _ms.Write(Encoding.ASCII.GetBytes(msg));
+            _ms.Write(Encoding.UTF8.GetBytes(msg));
         }
 
         public byte[] GetPacketBytes()

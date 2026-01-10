@@ -27,7 +27,7 @@ namespace ChatClient.Net
         {
             if(!_client.Connected)
             {
-                _client.Connect("0.0.0.0", 9000);
+                _client.Connect("192.168.1.4", 9000);
                 packetReader = new PacketReader(_client.GetStream());
                 
                 if(!string.IsNullOrEmpty(username))
@@ -68,13 +68,20 @@ namespace ChatClient.Net
             });
         }
 
-        public void SendMessageToServer (string message)
+        public void SendMessageToServer(string message)
         {
-            var messagePacket = new PacketBuilder();
+            try
+            {
+                var messagePacket = new PacketBuilder();
 
-            messagePacket.WriteOpCode(5); //Message opcode
-            messagePacket.WriteMessage(message);
-            _client.Client.Send(messagePacket.GetPacketBytes());
+                messagePacket.WriteOpCode(5); //Message opcode
+                messagePacket.WriteMessage(message);
+                _client.Client.Send(messagePacket.GetPacketBytes());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error sending message: " + ex.Message);
+            }
         }
 
         public void DisconnectFromServer(string uid)

@@ -10,7 +10,7 @@ namespace ChatServer
         static void Main(string[] args)
         {
             _users = new List<Client>();
-            _listener = new TcpListener(System.Net.IPAddress.Parse("0.0.0.0"), 9000);
+            _listener = new TcpListener(System.Net.IPAddress.Any, 9000);
             _listener.Start();
 
             while (true)
