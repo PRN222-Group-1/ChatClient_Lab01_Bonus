@@ -27,7 +27,7 @@ namespace ChatClient.Net
         {
             if(!_client.Connected)
             {
-                _client.Connect("192.168.1.4", 9000);
+                _client.Connect("192.168.100.105", 9000);
                 packetReader = new PacketReader(_client.GetStream());
                 
                 if(!string.IsNullOrEmpty(username))

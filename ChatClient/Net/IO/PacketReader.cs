@@ -15,15 +15,21 @@ namespace ChatClient.Net.IO
 
         public string ReadMessage()
         {
-            byte[] msgBuffer;
-            var length = ReadInt32();
-            msgBuffer = new byte[length];
+            int length = ReadInt32();
 
-            _ns.Read(msgBuffer, 0, length);
+            byte[] buffer = new byte[length];
 
-            var msg = Encoding.UTF8.GetString(msgBuffer);
+            int totalRead = 0;
 
-            return msg;
+            while (totalRead < length)
+            {
+                int read = _ns.Read(buffer, totalRead, length - totalRead);
+                if (read == 0)
+                    throw new Exception("Disconnected");
+                totalRead += read;
+            }
+
+            return Encoding.UTF8.GetString(buffer);
         }
     }
 
