@@ -12,19 +12,19 @@ namespace ChatClient.Net
         public event Action messageReceivedEvent;
         public event Action userDisconnectedEvent;
 
-        public Server ()
+        public Server()
         {
             _client = new TcpClient();
         }
 
-        public void ConnectToServer (string username)
+        public void ConnectToServer(string username)
         {
-            if(!_client.Connected)
+            if (!_client.Connected)
             {
                 _client.Connect("165.232.167.179", 9000);
                 packetReader = new PacketReader(_client.GetStream());
-                
-                if(!string.IsNullOrEmpty(username))
+
+                if (!string.IsNullOrEmpty(username))
                 {
                     var connectPacket = new PacketBuilder();
                     connectPacket.WriteOpCode(0);
@@ -32,7 +32,7 @@ namespace ChatClient.Net
                     _client.Client.Send(connectPacket.GetPacketBytes());
 
                 }
-                ReadPackets(); 
+                ReadPackets();
             }
         }
 
@@ -40,27 +40,36 @@ namespace ChatClient.Net
         {
             Task.Run(() =>
             {
-                while(true)
+                try
                 {
-                    var opcode = packetReader.ReadByte();
-                    switch(opcode)
+                    while (_client.Connected)
                     {
-                        case 1: //User Connected
-                            connectedEvent?.Invoke();
-                            break;
-                        case 5: //User sent message
-                            messageReceivedEvent?.Invoke();
-                            break;
-                        case 10: //User disconnected
-                            userDisconnectedEvent?.Invoke();
-                            break;
-                        default:
-                            Console.WriteLine("Unknown opcode received: " + opcode);
-                            break;
+                        var opcode = packetReader.ReadByte();
+                        switch (opcode)
+                        {
+                            case 1:
+                                connectedEvent?.Invoke();
+                                break;
+                            case 5: 
+                                messageReceivedEvent?.Invoke(); 
+                                break;
+                            case 10: 
+                                userDisconnectedEvent?.Invoke(); 
+                                break;
+                            default: 
+                                Console.WriteLine("Unknown opcode received: " + opcode);
+                                break;
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Connection lost: {ex.Message}");
+                    _client?.Close();
                 }
             });
         }
+
 
         public void SendMessageToServer(string message)
         {

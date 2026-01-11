@@ -31,7 +31,7 @@ namespace ChatServer
 
         void Process()
         {
-            while(ClientSocket.Connected)
+            while(true)
             {
                 try
                 {
