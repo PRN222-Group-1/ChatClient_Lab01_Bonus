@@ -27,7 +27,7 @@ namespace ChatServer.Net.IO
             {
                 int read = _ns.Read(buffer, totalRead, length - totalRead);
                 if (read == 0)
-                    throw new Exception("Disconnected");
+                    return null;
                 totalRead += read;
             }
 

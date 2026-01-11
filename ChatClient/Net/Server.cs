@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Security.RightsManagement;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net.Sockets;
 using ChatClient.Net.IO;
 
 namespace ChatClient.Net
@@ -27,7 +21,7 @@ namespace ChatClient.Net
         {
             if(!_client.Connected)
             {
-                _client.Connect("192.168.100.105", 9000);
+                _client.Connect("165.232.167.179", 9000);
                 packetReader = new PacketReader(_client.GetStream());
                 
                 if(!string.IsNullOrEmpty(username))
