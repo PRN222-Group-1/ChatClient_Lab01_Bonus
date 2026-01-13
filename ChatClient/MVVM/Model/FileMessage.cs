@@ -90,6 +90,7 @@ namespace ChatClient.MVVM.Model
         private int _downloadProgress;
         private bool _isDownloading;
         private string _downloadStatus;
+
         public int DownloadProgress
         {
             get => _downloadProgress;
@@ -98,6 +99,7 @@ namespace ChatClient.MVVM.Model
                 _downloadProgress = value;
                 OnPropertyChanged(nameof(DownloadProgress));
                 OnPropertyChanged(nameof(DownloadProgressRemaining));
+                OnPropertyChanged(nameof(DownloadProgressText)); // FIX: Thêm dòng này
             }
         }
 
@@ -124,6 +126,8 @@ namespace ChatClient.MVVM.Model
 
         public int DownloadProgressRemaining => 100 - DownloadProgress;
 
+        // FIX: Chuyển thành property để notify khi thay đổi
+        public string DownloadProgressText => $"{DownloadProgress}%";
 
         // Helper method để lấy icon phù hợp dựa trên extension
         public static string GetFileIcon(string extension)
@@ -142,9 +146,5 @@ namespace ChatClient.MVVM.Model
                 _ => "📎"
             };
         }
-        public string DownloadProgressText => $"{DownloadProgress}%";
-
-
-
     }
 }

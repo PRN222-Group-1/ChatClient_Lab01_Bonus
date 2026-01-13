@@ -185,7 +185,7 @@ namespace ChatClient.MVVM.ViewModel
             RemoveFileCommand = new RelayCommand(o => PendingFilePath = null);
 
             SendMessageCommand = new RelayCommand(
-                async o =>
+                o =>
                 {
                     if (!string.IsNullOrWhiteSpace(Message))
                     {
@@ -195,21 +195,42 @@ namespace ChatClient.MVVM.ViewModel
 
                     if (!string.IsNullOrEmpty(PendingFilePath))
                     {
-                        await _server.SendFileToServer(PendingFilePath, percent =>
-                        {
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                UploadProgress = $"Uploading... {percent}%";
-                            });
-                        });
+                        var filePath = PendingFilePath;
+                        PendingFilePath = null; 
 
-                        UploadProgress = null;
-                        PendingFilePath = null;
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await _server.SendFileToServer(filePath, percent =>
+                                {
+                                    Application.Current.Dispatcher.Invoke(() =>
+                                    {
+                                        UploadProgress = $"Uploading {Path.GetFileName(filePath)}... {percent}%";
+                                    });
+                                });
+                            }
+                            catch (Exception ex)
+                            {
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    MessageBox.Show($"Upload failed: {ex.Message}");
+                                });
+                            }
+                            finally
+                            {
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    UploadProgress = null;
+                                });
+                            }
+                        });
                     }
-                    
                 },
-                o => (!string.IsNullOrWhiteSpace(Message) || !string.IsNullOrEmpty(PendingFilePath)) && !IsUploading
+                o => !string.IsNullOrWhiteSpace(Message) || !string.IsNullOrEmpty(PendingFilePath)
             );
+
+
 
             InsertEmojisCommand = new RelayCommand(o =>
             {
@@ -262,7 +283,7 @@ namespace ChatClient.MVVM.ViewModel
                 {
                     Sender = sender,
                     FileName = fileName,
-                    FileExtension = fileExtension,  
+                    FileExtension = fileExtension,
                     FileIcon = FileMessage.GetFileIcon(fileExtension)
                 });
             });
