@@ -16,9 +16,6 @@
     <Window.Resources>
 
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <local:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-        <local:ProgressToWidthConverter x:Key="ProgressToWidthConverter"/>
 
         <!-- Template cho tin nhắn text -->
         <DataTemplate DataType="{x:Type local:TextMessage}">
@@ -37,22 +34,20 @@
         <!-- Template cho file với progress bar -->
         <DataTemplate DataType="{x:Type local:FileMessage}">
             <StackPanel Margin="5,2" HorizontalAlignment="Left">
-
                 <!-- Sender name -->
                 <TextBlock Text="{Binding Sender}" 
-                   FontSize="11" 
-                   Foreground="#666"
-                   Margin="8,0,0,2" />
+                           FontSize="11" 
+                           Foreground="#666"
+                           Margin="8,0,0,2" />
 
                 <!-- File card -->
                 <Border Background="White" 
-                BorderBrush="#E0E0E0" 
-                BorderThickness="1"
-                CornerRadius="8" 
-                Padding="12"
-                MinWidth="280"
-                MaxWidth="350">
-
+                        BorderBrush="#E0E0E0" 
+                        BorderThickness="1"
+                        CornerRadius="8" 
+                        Padding="12"
+                        MinWidth="280"
+                        MaxWidth="350">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -69,31 +64,31 @@
 
                             <!-- File icon -->
                             <Border Grid.Column="0"
-                            Background="#E8F5E9"
-                            CornerRadius="8"
-                            Width="48"
-                            Height="48"
-                            Margin="0,0,12,0">
+                                    Background="#E8F5E9"
+                                    CornerRadius="8"
+                                    Width="48"
+                                    Height="48"
+                                    Margin="0,0,12,0">
                                 <TextBlock Text="{Binding FileIcon}"
-                                   FontSize="24"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center" />
+                                           FontSize="24"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
                             </Border>
 
                             <!-- File details -->
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding FileName}"
-                                   FontWeight="Medium"
-                                   FontSize="13"
-                                   Foreground="#333"
-                                   TextTrimming="CharacterEllipsis"
-                                   MaxWidth="150" />
+                                           FontWeight="Medium"
+                                           FontSize="13"
+                                           Foreground="#333"
+                                           TextTrimming="CharacterEllipsis"
+                                           MaxWidth="150" />
 
                                 <!-- Extension - ẩn khi đang download -->
                                 <TextBlock Text="{Binding FileExtension}"
-                                   FontSize="11"
-                                   Foreground="#999"
-                                   Margin="0,2,0,0">
+                                           FontSize="11"
+                                           Foreground="#999"
+                                           Margin="0,2,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Visible"/>
@@ -108,10 +103,10 @@
 
                                 <!-- Download status - hiện khi đang download -->
                                 <TextBlock Text="{Binding DownloadStatus}"
-                                   FontSize="11"
-                                   Foreground="#4CAF50"
-                                   FontWeight="SemiBold"
-                                   Margin="0,2,0,0">
+                                           FontSize="11"
+                                           Foreground="#4CAF50"
+                                           FontWeight="SemiBold"
+                                           Margin="0,2,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -127,14 +122,14 @@
 
                             <!-- Download button - ẩn khi đang download -->
                             <Button Grid.Column="2"
-                            Command="{Binding DataContext.DownloadFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                            CommandParameter="{Binding}"
-                            Background="#4CAF50"
-                            Foreground="White"
-                            BorderThickness="0"
-                            Padding="12,8"
-                            Cursor="Hand"
-                            VerticalAlignment="Center">
+                                    Command="{Binding DataContext.DownloadFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Background="#4CAF50"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Padding="12,8"
+                                    Cursor="Hand"
+                                    VerticalAlignment="Center">
                                 <Button.Style>
                                     <Style TargetType="Button">
                                         <Setter Property="Visibility" Value="Visible"/>
@@ -152,10 +147,10 @@
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border Background="{TemplateBinding Background}"
-                                        CornerRadius="6"
-                                        Padding="{TemplateBinding Padding}">
+                                                CornerRadius="6"
+                                                Padding="{TemplateBinding Padding}">
                                             <ContentPresenter HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center"/>
+                                                              VerticalAlignment="Center"/>
                                         </Border>
                                     </ControlTemplate>
                                 </Button.Template>
@@ -166,10 +161,9 @@
                             </Button>
                         </Grid>
 
-                        <!-- 🔥 PROGRESS BAR (hiện khi đang download) -->
+                        <!-- Progress bar (hiện khi đang download) -->
                         <StackPanel Grid.Row="1" 
-                            Margin="0,12,0,0"
-                            x:Name="ProgressPanel">
+                                    Margin="0,12,0,0">
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -189,40 +183,51 @@
 
                                 <!-- Progress text bên trái -->
                                 <TextBlock Grid.Column="0"
-                                   Text="{Binding DownloadStatus}"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
-                                   Foreground="#4CAF50"
-                                   VerticalAlignment="Center"/>
+                                           Text="{Binding DownloadStatus}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="#4CAF50"
+                                           VerticalAlignment="Center"/>
 
                                 <!-- Percent bên phải -->
                                 <TextBlock Grid.Column="1"
-                                   Text="{Binding DownloadProgressText}"
-                                   FontSize="12"
-                                   FontWeight="Bold"
-                                   Foreground="#4CAF50"
-                                   Margin="8,0,0,0"/>
+                                           Text="{Binding DownloadProgressText}"
+                                           FontSize="12"
+                                           FontWeight="Bold"
+                                           Foreground="#4CAF50"
+                                           Margin="8,0,0,0"/>
                             </Grid>
 
-                            <!-- Progress bar -->
-                            <Grid Margin="0,6,0,0" Height="8">
-                                <Border Background="#E0E0E0"
-                                CornerRadius="4"/>
-                                <Border Background="#4CAF50"
-                                CornerRadius="4"
-                                HorizontalAlignment="Left"
-                                x:Name="ProgressBar">
-                                    <Border.Width>
-                                        <Binding Path="DownloadProgress">
-                                            <Binding.Converter>
-                                                <local:ProgressBarWidthConverter MaxWidth="256"/>
-                                            </Binding.Converter>
-                                        </Binding>
-                                    </Border.Width>
-                                </Border>
-                            </Grid>
+                            <!-- Simple Progress bar without converter -->
+                            <ProgressBar Value="{Binding DownloadProgress}"
+                                         Maximum="100"
+                                         Height="8"
+                                         Margin="0,6,0,0"
+                                         Foreground="#4CAF50"
+                                         Background="#E0E0E0"
+                                         BorderThickness="0">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ProgressBar">
+                                                    <Grid>
+                                                        <Border x:Name="PART_Track"
+                                                                Background="#E0E0E0" 
+                                                                CornerRadius="4"/>
+                                                        <Border x:Name="PART_Indicator"
+                                                                Background="#4CAF50" 
+                                                                CornerRadius="4"
+                                                                HorizontalAlignment="Left">
+                                                        </Border>
+                                                    </Grid>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
                         </StackPanel>
-
                     </Grid>
                 </Border>
             </StackPanel>
@@ -427,7 +432,7 @@
                 Background="#F8F9FA"
                 BorderBrush="#E9ECEF"
                 BorderThickness="0,1,0,0"
-                Padding="20,16" >
+                Padding="20,16">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -438,20 +443,20 @@
 
                     <!-- Thanh công cụ -->
                     <StackPanel Grid.Row="0"
-                    Orientation="Horizontal"
-                    Margin="0,0,0,8">
+                                Orientation="Horizontal"
+                                Margin="0,0,0,8">
 
                         <!-- Nút upload file -->
                         <Button Content="📎"
-                    FontSize="18"
-                    Width="42"
-                    Height="40"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Cursor="Hand"
-                    Margin="0,0,8,0"
-                    ToolTip="Upload file"
-                    Command="{Binding UploadFileCommand}">
+                                FontSize="18"
+                                Width="42"
+                                Height="40"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Margin="0,0,8,0"
+                                ToolTip="Upload file"
+                                Command="{Binding UploadFileCommand}">
                             <Button.Style>
                                 <Style TargetType="Button">
                                     <Setter Property="Background" Value="Transparent"/>
@@ -465,10 +470,10 @@
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
-                                Padding="8">
+                                            CornerRadius="4"
+                                            Padding="8">
                                         <ContentPresenter HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"/>
+                                                          VerticalAlignment="Center"/>
                                     </Border>
                                 </ControlTemplate>
                             </Button.Template>
@@ -476,14 +481,14 @@
 
                         <!-- Nút emoji -->
                         <Button Content="😊"
-                    FontSize="18"
-                    Width="41"
-                    Height="42"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Cursor="Hand"
-                    Command="{Binding ToggleEmojiPanelCommand}"
-                    ToolTip="Insert emoji">
+                                FontSize="18"
+                                Width="41"
+                                Height="42"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Command="{Binding ToggleEmojiPanelCommand}"
+                                ToolTip="Insert emoji">
                             <Button.Style>
                                 <Style TargetType="Button">
                                     <Setter Property="Background" Value="Transparent"/>
@@ -497,10 +502,10 @@
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
-                                Padding="8">
+                                            CornerRadius="4"
+                                            Padding="8">
                                         <ContentPresenter HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"/>
+                                                          VerticalAlignment="Center"/>
                                     </Border>
                                 </ControlTemplate>
                             </Button.Template>
@@ -509,13 +514,13 @@
 
                     <!-- FILE PREVIEW AREA -->
                     <Border Grid.Row="1"
-                    Background="#E7F3FF"
-                    BorderBrush="#90CAF9"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="12"
-                    Margin="0,0,0,12"
-                    Visibility="{Binding HasPendingFile, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            Background="#E7F3FF"
+                            BorderBrush="#90CAF9"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="12"
+                            Margin="0,0,0,12"
+                            Visibility="{Binding HasPendingFile, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -525,43 +530,43 @@
 
                             <!-- File Icon -->
                             <Border Grid.Column="0"
-                        Background="#1976D2"
-                        CornerRadius="4"
-                        Width="40"
-                        Height="40"
-                        Margin="0,0,12,0">
+                                    Background="#1976D2"
+                                    CornerRadius="4"
+                                    Width="40"
+                                    Height="40"
+                                    Margin="0,0,12,0">
                                 <TextBlock Text="📄"
-                               FontSize="20"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"/>
+                                           FontSize="20"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
                             </Border>
 
                             <!-- File Info -->
                             <StackPanel Grid.Column="1"
-                            VerticalAlignment="Center">
+                                        VerticalAlignment="Center">
                                 <TextBlock Text="{Binding PendingFileName}"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Foreground="#1565C0"
-                               TextTrimming="CharacterEllipsis"/>
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#1565C0"
+                                           TextTrimming="CharacterEllipsis"/>
                                 <TextBlock Text="{Binding PendingFileSize}"
-                               FontSize="12"
-                               Foreground="#64B5F6"
-                               Margin="0,2,0,0"/>
+                                           FontSize="12"
+                                           Foreground="#64B5F6"
+                                           Margin="0,2,0,0"/>
                             </StackPanel>
 
                             <!-- Remove Button -->
                             <Button Grid.Column="2"
-                                Content="✕"
-                                Width="28"
-                                Height="28"
-                                FontSize="14"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Foreground="#1976D2"
-                                Cursor="Hand"
-                                ToolTip="Remove file"
-                                Command="{Binding RemoveFileCommand}">
+                                    Content="✕"
+                                    Width="28"
+                                    Height="28"
+                                    FontSize="14"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Foreground="#1976D2"
+                                    Cursor="Hand"
+                                    ToolTip="Remove file"
+                                    Command="{Binding RemoveFileCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button">
                                         <Setter Property="Background" Value="Transparent"/>
@@ -575,9 +580,9 @@
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border Background="{TemplateBinding Background}"
-                                    CornerRadius="14">
+                                                CornerRadius="14">
                                             <ContentPresenter HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"/>
+                                                              VerticalAlignment="Center"/>
                                         </Border>
                                     </ControlTemplate>
                                 </Button.Template>
@@ -594,35 +599,35 @@
 
                         <!-- TextBox -->
                         <Border Grid.Column="0"
-                    Background="#FFFFFF"
-                    BorderBrush="#DEE2E6"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="12,10">
+                                Background="#FFFFFF"
+                                BorderBrush="#DEE2E6"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12,10">
                             <TextBox x:Name="InputBox"
-                         Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}"
-                         FontFamily="Segoe UI, Segoe UI Emoji"
-                         FontSize="14"
-                         BorderThickness="0"
-                         Background="Transparent"
-                         VerticalContentAlignment="Center"
-                         TextWrapping="Wrap"
-                         AcceptsReturn="False"/>
+                                     Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}"
+                                     FontFamily="Segoe UI, Segoe UI Emoji"
+                                     FontSize="14"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     VerticalContentAlignment="Center"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="False"/>
                         </Border>
 
                         <!-- Send Button -->
                         <Button Grid.Column="1"
-                    Content="Send"
-                    IsDefault="True"
-                    Margin="12,0,0,0"
-                    Padding="24,10"
-                    Background="#0D6EFD"
-                    Foreground="White"
-                    FontWeight="SemiBold"
-                    FontSize="14"
-                    BorderThickness="0"
-                    Cursor="Hand"
-                    Command="{Binding SendMessageCommand}">
+                                Content="Send"
+                                IsDefault="True"
+                                Margin="12,0,0,0"
+                                Padding="24,10"
+                                Background="#0D6EFD"
+                                Foreground="White"
+                                FontWeight="SemiBold"
+                                FontSize="14"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Command="{Binding SendMessageCommand}">
                             <Button.Style>
                                 <Style TargetType="Button">
                                     <Setter Property="Background" Value="#0D6EFD"/>
@@ -636,10 +641,10 @@
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border Background="{TemplateBinding Background}"
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}">
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
                                         <ContentPresenter HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"/>
+                                                          VerticalAlignment="Center"/>
                                     </Border>
                                 </ControlTemplate>
                             </Button.Template>
@@ -647,21 +652,21 @@
 
                         <!-- Emoji Popup -->
                         <Popup IsOpen="{Binding IsEmojiOpen}"
-                   Placement="Top"
-                   PlacementTarget="{Binding ElementName=InputBox}"
-                   StaysOpen="False">
+                               Placement="Top"
+                               PlacementTarget="{Binding ElementName=InputBox}"
+                               StaysOpen="False">
                             <Border Background="White"
-                        BorderBrush="#DEE2E6"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Width="320"
-                        Height="280"
-                        Padding="12">
+                                    BorderBrush="#DEE2E6"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Width="320"
+                                    Height="280"
+                                    Padding="12">
                                 <Border.Effect>
                                     <DropShadowEffect Color="#000000"
-                                        Opacity="0.1"
-                                        BlurRadius="12"
-                                        ShadowDepth="0"/>
+                                                      Opacity="0.1"
+                                                      BlurRadius="12"
+                                                      ShadowDepth="0"/>
                                 </Border.Effect>
                                 <ScrollViewer>
                                     <ItemsControl ItemsSource="{Binding Emojis}">
@@ -673,16 +678,16 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Button Content="{Binding Emoji}"
-                                            FontSize="20"
-                                            Width="40"
-                                            Height="40"
-                                            Margin="2"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Cursor="Hand"
-                                            Command="{Binding DataContext.InsertEmojisCommand,
-                                                      RelativeSource={RelativeSource AncestorType=Window}}"
-                                            CommandParameter="{Binding}">
+                                                        FontSize="20"
+                                                        Width="40"
+                                                        Height="40"
+                                                        Margin="2"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Cursor="Hand"
+                                                        Command="{Binding DataContext.InsertEmojisCommand,
+                                                                  RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}">
                                                     <Button.Style>
                                                         <Style TargetType="Button">
                                                             <Setter Property="Background" Value="Transparent"/>
@@ -696,9 +701,9 @@
                                                     <Button.Template>
                                                         <ControlTemplate TargetType="Button">
                                                             <Border Background="{TemplateBinding Background}"
-                                                        CornerRadius="4">
+                                                                    CornerRadius="4">
                                                                 <ContentPresenter HorizontalAlignment="Center"
-                                                                    VerticalAlignment="Center"/>
+                                                                                  VerticalAlignment="Center"/>
                                                             </Border>
                                                         </ControlTemplate>
                                                     </Button.Template>
