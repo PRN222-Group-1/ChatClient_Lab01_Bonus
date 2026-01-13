@@ -87,6 +87,42 @@ namespace ChatClient.MVVM.Model
             }
         }
 
+        private int _downloadProgress;
+        private bool _isDownloading;
+        private string _downloadStatus;
+        public int DownloadProgress
+        {
+            get => _downloadProgress;
+            set
+            {
+                _downloadProgress = value;
+                OnPropertyChanged(nameof(DownloadProgress));
+            }
+        }
+
+        public bool IsDownloading
+        {
+            get => _isDownloading;
+            set
+            {
+                _isDownloading = value;
+                OnPropertyChanged(nameof(IsDownloading));
+                OnPropertyChanged(nameof(FileExtension));
+            }
+        }
+
+        public string DownloadStatus
+        {
+            get => _downloadStatus;
+            set
+            {
+                _downloadStatus = value;
+                OnPropertyChanged(nameof(DownloadStatus));
+            }
+        }
+
+
+
         // Helper method để lấy icon phù hợp dựa trên extension
         public static string GetFileIcon(string extension)
         {
@@ -104,5 +140,7 @@ namespace ChatClient.MVVM.Model
                 _ => "📎"
             };
         }
+        public string DownloadProgressText => $"{DownloadProgress}%";
+
     }
 }

@@ -74,7 +74,11 @@ namespace ChatServer
                                 _currentFileName
                             );
                             break;
+                        case 18:
+                            string requestedFileName = _packetReader.ReadMessage();
 
+                            SendFileDownload(requestedFileName);
+                            break;
                         default:
                             break;
                     }
@@ -98,6 +102,55 @@ namespace ChatServer
             packetBuilder.WriteMessage(fileName);
             ClientSocket.Client.Send(packetBuilder.GetPacketBytes());
         }
+
+        private void SendFileDownload(string fileName)
+        {
+            try
+            {
+                string filePath = Path.Combine("Uploads", fileName);
+
+                if (!File.Exists(filePath))
+                {
+                    Console.WriteLine($"File not found: {fileName}");
+                    return;
+                }
+
+                var fileInfo = new FileInfo(filePath);
+
+                var startPacket = new PacketBuilder();
+                startPacket.WriteOpCode(19); // File download start opcode
+                startPacket.WriteMessage(fileName);
+                startPacket.WriteLong(fileInfo.Length);
+                ClientSocket.Client.Send(startPacket.GetPacketBytes());
+
+                const int chunkSize = 64 * 1024;
+                byte[] buffer = new byte[chunkSize];
+
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                {
+                    int bytesRead;
+                    while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        var chunkPacket = new PacketBuilder();
+                        chunkPacket.WriteOpCode(20);
+                        chunkPacket.WriteInt(bytesRead);
+                        chunkPacket.WriteBytes(buffer, bytesRead);
+                        ClientSocket.Client.Send(chunkPacket.GetPacketBytes());
+                    }
+                }
+
+                var endPacket = new PacketBuilder();
+                endPacket.WriteOpCode(21); // File end opcode
+                ClientSocket.Client.Send(endPacket.GetPacketBytes());
+
+                Console.WriteLine($"Sent file {fileName} to {Username}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending file: {ex.Message}");
+            }
+        }
+
 
         public void HandleFileStart()
         {

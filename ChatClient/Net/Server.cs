@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Windows;
 using ChatClient.Net.IO;
 
 namespace ChatClient.Net
@@ -18,6 +19,17 @@ namespace ChatClient.Net
         public event Action userDisconnectedEvent;
         public event Action<string, string> fileReceivedEvent;
         public event Action<string, string> fileUploadedEvent;
+
+        private string _downloadFilePath;
+        private string _downloadFileName;
+        private long _downloadExpectedSize;
+        private long _downloadReceivedBytes;
+        private FileStream _downloadFileStream;
+
+        public event Action<string, int> downloadProgressEvent;  // fileName, percent
+        public event Action<string> downloadCompleteEvent;  // fileName
+
+
 
         public Server()
         {
@@ -127,11 +139,52 @@ namespace ChatClient.Net
                                 break;
                             case 17:
                                 break;
-                            case 18:
-                                string sd = packetReader.ReadMessage();
-                                string fn = packetReader.ReadMessage();
-                                fileUploadedEvent?.Invoke(sd, fn);
+                            case 19:  // Download file start
+                                _downloadFileName = packetReader.ReadMessage();
+                                _downloadExpectedSize = packetReader.ReadLong();
+                                _downloadReceivedBytes = 0;
+
+                                if (!string.IsNullOrEmpty(_downloadFilePath))
+                                {
+                                    _downloadFileStream = new FileStream(
+                                        _downloadFilePath,
+                                        FileMode.Create,
+                                        FileAccess.Write,
+                                        FileShare.None,
+                                        64 * 1024
+                                    );
+                                    Console.WriteLine($"Started downloading {_downloadFileName}");
+                                }
                                 break;
+
+                            case 20: 
+                                if (_downloadFileStream != null)
+                                {
+                                    int sizeFile = packetReader.ReadInt();
+                                    byte[] data = packetReader.ReadBytes(sizeFile);
+                                    _downloadFileStream.Write(data, 0, data.Length);
+                                    _downloadReceivedBytes += data.Length;
+
+                                    int percent = (int)((_downloadReceivedBytes * 100) / _downloadExpectedSize);
+                                    downloadProgressEvent?.Invoke(_downloadFileName, percent);
+                                }
+                                break;
+
+                            case 21: 
+                                _downloadFileStream?.Flush();
+                                _downloadFileStream?.Close();
+                                _downloadFileStream = null;
+
+                                Console.WriteLine($"Download complete: {_downloadFileName} ({_downloadReceivedBytes} bytes)");
+                                downloadCompleteEvent?.Invoke(_downloadFileName);
+
+                                _downloadFileName = null;
+                                _downloadFilePath = null;
+                                _downloadExpectedSize = 0;
+                                _downloadReceivedBytes = 0;
+                                break;
+
+
                             default:
                                 Console.WriteLine($"Unknown opcode received: {opcode}");
                                 break;
@@ -145,6 +198,12 @@ namespace ChatClient.Net
                 }
             });
         }
+
+        public void SetDownloadPath(string filePath)
+        {
+            _downloadFilePath = filePath;
+        }
+
 
         private async Task SendFileChunks(string filePath, long totalSize, Action<int> onProgress)
         {

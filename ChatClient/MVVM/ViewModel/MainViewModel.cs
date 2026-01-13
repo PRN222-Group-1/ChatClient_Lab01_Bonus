@@ -138,6 +138,35 @@ namespace ChatClient.MVVM.ViewModel
                 });
             };
 
+            _server.downloadProgressEvent += (fileName, percent) =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var fileMsg = Messages.OfType<FileMessage>()
+                        .FirstOrDefault(m => m.FileName == fileName);
+                    if (fileMsg != null)
+                    {
+                        fileMsg.DownloadProgress = percent;
+                        fileMsg.DownloadStatus = $"Đang tải... {percent}%";
+                    }
+                });
+            };
+
+            _server.downloadCompleteEvent += (fileName) =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var fileMsg = Messages.OfType<FileMessage>()
+                        .FirstOrDefault(m => m.FileName == fileName);
+                    if (fileMsg != null)
+                    {
+                        fileMsg.IsDownloading = false;
+                        fileMsg.DownloadStatus = "✅ Đã tải xong";
+                    }
+                });
+            };
+
+
 
             ConnectToServerCommand = new RelayCommand(
                 o => _server.ConnectToServer(Username ?? "hello"),
@@ -204,10 +233,18 @@ namespace ChatClient.MVVM.ViewModel
 
                     if (saveDialog.ShowDialog() == true)
                     {
+                        _server.SetDownloadPath(saveDialog.FileName);
+
+                        fileMsg.IsDownloading = true;
+                        fileMsg.DownloadProgress = 0;
+                        fileMsg.DownloadStatus = "Đang chuẩn bị...";
+
                         _server.RequestDownloadFile(fileMsg.FileName);
                     }
                 }
             });
+
+
         }
 
         protected void OnPropertyChanged(string name)
@@ -219,13 +256,18 @@ namespace ChatClient.MVVM.ViewModel
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
+                var fileExtension = Path.GetExtension(fileName);
+
                 Messages.Add(new FileMessage
                 {
                     Sender = sender,
-                    FileName = fileName
+                    FileName = fileName,
+                    FileExtension = fileExtension,  
+                    FileIcon = FileMessage.GetFileIcon(fileExtension)
                 });
             });
         }
+
 
         private void UserDisconnected()
         {

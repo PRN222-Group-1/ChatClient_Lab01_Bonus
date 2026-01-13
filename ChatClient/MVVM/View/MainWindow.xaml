@@ -14,7 +14,11 @@
     </Window.DataContext>
 
     <Window.Resources>
+
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <local:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <local:ProgressToWidthConverter x:Key="ProgressToWidthConverter"/>
 
         <!-- Template cho tin nhắn text -->
         <DataTemplate DataType="{x:Type local:TextMessage}">
@@ -30,104 +34,195 @@
             </Border>
         </DataTemplate>
 
-        <!-- Template cho file giống Zalo -->
+        <!-- Template cho file với progress bar -->
         <DataTemplate DataType="{x:Type local:FileMessage}">
             <StackPanel Margin="5,2" HorizontalAlignment="Left">
-                <!-- Hiển thị tên người gửi -->
-                <TextBlock Text="{Binding Sender}" 
-                           FontSize="11" 
-                           Foreground="#666"
-                           Margin="8,0,0,2"/>
 
-                <!-- Card file -->
+                <!-- Sender name -->
+                <TextBlock Text="{Binding Sender}" 
+                   FontSize="11" 
+                   Foreground="#666"
+                   Margin="8,0,0,2" />
+
+                <!-- File card -->
                 <Border Background="White" 
-                        BorderBrush="#E0E0E0" 
-                        BorderThickness="1"
-                        CornerRadius="8" 
-                        Padding="12"
-                        MinWidth="280"
-                        MaxWidth="350"
-                        Cursor="Hand">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#F8F8F8"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
+                BorderBrush="#E0E0E0" 
+                BorderThickness="1"
+                CornerRadius="8" 
+                Padding="12"
+                MinWidth="280"
+                MaxWidth="350">
 
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                        <!-- Icon file -->
-                        <Border Grid.Column="0"
-                                Background="#E8F5E9"
-                                CornerRadius="8"
-                                Width="48"
-                                Height="48"
-                                Margin="0,0,12,0">
-                            <TextBlock Text="{Binding FileIcon}"
-                                       FontSize="24"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
-                        </Border>
+                        <!-- File info row -->
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                        <!-- Thông tin file -->
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding FileName}"
-                                       FontWeight="Medium"
-                                       FontSize="13"
-                                       Foreground="#333"
-                                       TextTrimming="CharacterEllipsis"
-                                       MaxWidth="180"/>
-                            <TextBlock Text="{Binding FileExtension}"
-                                       FontSize="11"
-                                       Foreground="#999"
-                                       Margin="0,2,0,0"/>
-                        </StackPanel>
+                            <!-- File icon -->
+                            <Border Grid.Column="0"
+                            Background="#E8F5E9"
+                            CornerRadius="8"
+                            Width="48"
+                            Height="48"
+                            Margin="0,0,12,0">
+                                <TextBlock Text="{Binding FileIcon}"
+                                   FontSize="24"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                            </Border>
 
-                        <!-- Button download -->
-                        <Button Grid.Column="2"
-                                Command="{Binding DataContext.DownloadFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                CommandParameter="{Binding}"
-                                Background="#4CAF50"
-                                Foreground="White"
-                                BorderThickness="0"
-                                Padding="12,8"
-                                Cursor="Hand"
-                                VerticalAlignment="Center">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}"
-                                                        CornerRadius="6"
-                                                        Padding="{TemplateBinding Padding}">
-                                                    <ContentPresenter HorizontalAlignment="Center"
-                                                                      VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
+                            <!-- File details -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FileName}"
+                                   FontWeight="Medium"
+                                   FontSize="13"
+                                   Foreground="#333"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="150" />
+
+                                <!-- Extension - ẩn khi đang download -->
+                                <TextBlock Text="{Binding FileExtension}"
+                                   FontSize="11"
+                                   Foreground="#999"
+                                   Margin="0,2,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDownloading}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <!-- Download status - hiện khi đang download -->
+                                <TextBlock Text="{Binding DownloadStatus}"
+                                   FontSize="11"
+                                   Foreground="#4CAF50"
+                                   FontWeight="SemiBold"
+                                   Margin="0,2,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDownloading}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <!-- Download button - ẩn khi đang download -->
+                            <Button Grid.Column="2"
+                            Command="{Binding DataContext.DownloadFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            CommandParameter="{Binding}"
+                            Background="#4CAF50"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Padding="12,8"
+                            Cursor="Hand"
+                            VerticalAlignment="Center">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Setter Property="Background" Value="#4CAF50"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDownloading}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#45a049"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📥" FontSize="14" Margin="0,0,4,0"/>
+                                    <TextBlock Text="Tải" FontSize="12" FontWeight="Medium"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <!-- 🔥 PROGRESS BAR (hiện khi đang download) -->
+                        <StackPanel Grid.Row="1" 
+                            Margin="0,12,0,0"
+                            x:Name="ProgressPanel">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#45a049"/>
-                                        </Trigger>
+                                        <DataTrigger Binding="{Binding IsDownloading}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="📥" FontSize="14" Margin="0,0,4,0"/>
-                                <TextBlock Text="Tải" FontSize="12" FontWeight="Medium"/>
-                            </StackPanel>
-                        </Button>
+                            </StackPanel.Style>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Progress text bên trái -->
+                                <TextBlock Grid.Column="0"
+                                   Text="{Binding DownloadStatus}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="#4CAF50"
+                                   VerticalAlignment="Center"/>
+
+                                <!-- Percent bên phải -->
+                                <TextBlock Grid.Column="1"
+                                   Text="{Binding DownloadProgressText}"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   Foreground="#4CAF50"
+                                   Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <!-- Progress bar -->
+                            <Grid Margin="0,6,0,0" Height="8">
+                                <Border Background="#E0E0E0"
+                                CornerRadius="4"/>
+                                <Border Background="#4CAF50"
+                                CornerRadius="4"
+                                HorizontalAlignment="Left"
+                                x:Name="ProgressBar">
+                                    <Border.Width>
+                                        <Binding Path="DownloadProgress">
+                                            <Binding.Converter>
+                                                <local:ProgressBarWidthConverter MaxWidth="256"/>
+                                            </Binding.Converter>
+                                        </Binding>
+                                    </Border.Width>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+
                     </Grid>
                 </Border>
             </StackPanel>
