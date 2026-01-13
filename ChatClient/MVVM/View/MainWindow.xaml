@@ -3,159 +3,743 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:viewmodel="clr-namespace:ChatClient.MVVM.ViewModel"
+        xmlns:local="clr-namespace:ChatClient.MVVM.Model"
         Title="Chat Client"
-        Height="450"
-        Width="800">
+        Height="600"
+        Width="1000"
+        Background="#FFFFFF">
 
     <Window.DataContext>
         <viewmodel:MainViewModel/>
     </Window.DataContext>
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <!-- Template cho tin nhắn text -->
+        <DataTemplate DataType="{x:Type local:TextMessage}">
+            <Border Background="#F0F0F0" 
+                    CornerRadius="8" 
+                    Padding="12,8" 
+                    Margin="5,2"
+                    MaxWidth="400"
+                    HorizontalAlignment="Left">
+                <TextBlock Text="{Binding Text}" 
+                           TextWrapping="Wrap"
+                           Foreground="#333"/>
+            </Border>
+        </DataTemplate>
+
+        <!-- Template cho file giống Zalo -->
+        <DataTemplate DataType="{x:Type local:FileMessage}">
+            <StackPanel Margin="5,2" HorizontalAlignment="Left">
+                <!-- Hiển thị tên người gửi -->
+                <TextBlock Text="{Binding Sender}" 
+                           FontSize="11" 
+                           Foreground="#666"
+                           Margin="8,0,0,2"/>
+
+                <!-- Card file -->
+                <Border Background="White" 
+                        BorderBrush="#E0E0E0" 
+                        BorderThickness="1"
+                        CornerRadius="8" 
+                        Padding="12"
+                        MinWidth="280"
+                        MaxWidth="350"
+                        Cursor="Hand">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#F8F8F8"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Icon file -->
+                        <Border Grid.Column="0"
+                                Background="#E8F5E9"
+                                CornerRadius="8"
+                                Width="48"
+                                Height="48"
+                                Margin="0,0,12,0">
+                            <TextBlock Text="{Binding FileIcon}"
+                                       FontSize="24"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- Thông tin file -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding FileName}"
+                                       FontWeight="Medium"
+                                       FontSize="13"
+                                       Foreground="#333"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="180"/>
+                            <TextBlock Text="{Binding FileExtension}"
+                                       FontSize="11"
+                                       Foreground="#999"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <!-- Button download -->
+                        <Button Grid.Column="2"
+                                Command="{Binding DataContext.DownloadFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                Background="#4CAF50"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Padding="12,8"
+                                Cursor="Hand"
+                                VerticalAlignment="Center">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        CornerRadius="6"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                      VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#45a049"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📥" FontSize="14" Margin="0,0,4,0"/>
+                                <TextBlock Text="Tải" FontSize="12" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
     <Grid>
         <Grid.ColumnDefinitions>
-            <!-- Vùng trái -->
-            <ColumnDefinition Width="200"/>
-            <!-- Vùng phải -->
+            <!-- Sidebar trái - Danh sách chat -->
+            <ColumnDefinition Width="280"/>
+            <!-- Vùng giữa - Chat chính -->
             <ColumnDefinition Width="*"/>
+            <!-- Sidebar phải - Users -->
+            <ColumnDefinition Width="240"/>
         </Grid.ColumnDefinitions>
 
-        <!-- ================= VÙNG TRÁI ================= -->
+        <!-- ================= SIDEBAR TRÁI - LỊCH SỬ CHAT ================= -->
         <Border Grid.Column="0"
-                Background="#F2F2F2"
-                BorderBrush="LightGray"
-                BorderThickness="0,0,1,0"
-                Padding="10">
+                Background="#F8F9FA"
+                BorderBrush="#E9ECEF"
+                BorderThickness="0,0,1,0">
 
-            <DockPanel>
-                <TextBox Height="25"
-                         DockPanel.Dock="Top"
-                         Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
-                <Button x:Name="ConnectButton"
-                        Height="35"
-                        Content="Connect"
-                        DockPanel.Dock="Top"
-                        Command="{Binding ConnectToServerCommand}"/>
-                <ListView ItemsSource="{Binding Users}">
-                    <ListView.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Username}"/>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
-            </DockPanel>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Border Grid.Row="0"
+                        Background="#FFFFFF"
+                        BorderBrush="#E9ECEF"
+                        BorderThickness="0,0,0,1"
+                        Padding="16,20">
+                    <TextBlock Text="Messages"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#212529"/>
+                </Border>
+
+                <!-- Danh sách chat -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <!-- Chat mẫu 1 -->
+                        <Border Background="#FFFFFF"
+                                BorderBrush="#E9ECEF"
+                                BorderThickness="0,0,0,1"
+                                Padding="16,12"
+                                Cursor="Hand">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0"
+                                           Text="General Chat"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Foreground="#212529"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock Grid.Row="1"
+                                           Text="Hey everyone! How's it going?"
+                                           FontSize="12"
+                                           Foreground="#6C757D"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Chat mẫu 2 -->
+                        <Border Background="#F8F9FA"
+                                BorderBrush="#E9ECEF"
+                                BorderThickness="0,0,0,1"
+                                Padding="16,12"
+                                Cursor="Hand">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0"
+                                           Text="Team Discussion"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Foreground="#212529"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock Grid.Row="1"
+                                           Text="Meeting at 3pm today"
+                                           FontSize="12"
+                                           Foreground="#6C757D"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Chat mẫu 3 -->
+                        <Border Background="#FFFFFF"
+                                BorderBrush="#E9ECEF"
+                                BorderThickness="0,0,0,1"
+                                Padding="16,12"
+                                Cursor="Hand">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0"
+                                           Text="Project Updates"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Foreground="#212529"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock Grid.Row="1"
+                                           Text="New features deployed 🚀"
+                                           FontSize="12"
+                                           Foreground="#6C757D"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
         </Border>
 
-        <!-- ================= VÙNG PHẢI ================= -->
+        <!-- ================= VÙNG GIỮA - CHAT CHÍNH ================= -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
-                <!-- Chat history -->
+                <!-- Header -->
+                <RowDefinition Height="Auto"/>
+                <!-- Chat messages -->
                 <RowDefinition Height="*"/>
-                <!-- Input -->
+                <!-- Input area -->
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- ===== LỊCH SỬ CHAT ===== -->
+            <!-- Header chat -->
             <Border Grid.Row="0"
-            Margin="10"
-            BorderBrush="#DDD"
-            BorderThickness="1"
-            CornerRadius="5">
-
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <ListBox ItemsSource="{Binding Messages}"
-                     FontFamily="Segoe UI Emoji"
-                     FontSize="14"/>
-                </ScrollViewer>
-
+                    Background="#FFFFFF"
+                    BorderBrush="#E9ECEF"
+                    BorderThickness="0,0,0,1"
+                    Padding="20,16">
+                <TextBlock Text="General Chat"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="#212529"/>
             </Border>
 
-            <!-- ===== INPUT + EMOJI + SEND ===== -->
+            <!-- Tin nhắn chat -->
             <Border Grid.Row="1"
-            BorderBrush="LightGray"
-            BorderThickness="1,0,0,0"
-            Padding="10">
+                    Background="#FFFFFF"
+                    Padding="20">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ListBox ItemsSource="{Binding Messages}"
+                             FontFamily="Segoe UI, Segoe UI Emoji"
+                             FontSize="14"
+                             BorderThickness="0"
+                             Background="Transparent">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border Padding="0,4">
+                                                <ContentPresenter/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </ScrollViewer>
+            </Border>
 
+            <Border Grid.Row="2"
+                Background="#F8F9FA"
+                BorderBrush="#E9ECEF"
+                BorderThickness="0,1,0,0"
+                Padding="20,16" >
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <!-- File preview area -->
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    <!-- Input -->
-                    <TextBox x:Name="InputBox"
-                     Grid.Column="0"
-                     Height="40"
-                     Padding="10"
-                     VerticalContentAlignment="Center"
-                     FontFamily="Segoe UI Emoji"
-                     Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}"
-                     TextWrapping="Wrap"
-                     VerticalScrollBarVisibility="Auto"
-                     AcceptsReturn="False"/>
+                    <!-- Thanh công cụ -->
+                    <StackPanel Grid.Row="0"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,8">
 
-                    <!-- Emoji button -->
-                    <Button Grid.Column="1"
-                    Content="😊"
-                    FontSize="20"
-                    Width="40"
-                    Command="{Binding ToggleEmojiPanelCommand}"/>       
+                        <!-- Nút upload file -->
+                        <Button Content="📎"
+                    FontSize="18"
+                    Width="42"
+                    Height="40"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Margin="0,0,8,0"
+                    ToolTip="Upload file"
+                    Command="{Binding UploadFileCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#E9ECEF"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="8">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
 
+                        <!-- Nút emoji -->
+                        <Button Content="😊"
+                    FontSize="18"
+                    Width="41"
+                    Height="42"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Command="{Binding ToggleEmojiPanelCommand}"
+                    ToolTip="Insert emoji">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#E9ECEF"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="8">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
 
-                    <!-- Send -->
-                    <Button Grid.Column="2"
+                    <!-- FILE PREVIEW AREA -->
+                    <Border Grid.Row="1"
+                    Background="#E7F3FF"
+                    BorderBrush="#90CAF9"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="12"
+                    Margin="0,0,0,12"
+                    Visibility="{Binding HasPendingFile, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- File Icon -->
+                            <Border Grid.Column="0"
+                        Background="#1976D2"
+                        CornerRadius="4"
+                        Width="40"
+                        Height="40"
+                        Margin="0,0,12,0">
+                                <TextBlock Text="📄"
+                               FontSize="20"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                            </Border>
+
+                            <!-- File Info -->
+                            <StackPanel Grid.Column="1"
+                            VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PendingFileName}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="#1565C0"
+                               TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding PendingFileSize}"
+                               FontSize="12"
+                               Foreground="#64B5F6"
+                               Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <!-- Remove Button -->
+                            <Button Grid.Column="2"
+                                Content="✕"
+                                Width="28"
+                                Height="28"
+                                FontSize="14"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#1976D2"
+                                Cursor="Hand"
+                                ToolTip="Remove file"
+                                Command="{Binding RemoveFileCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#BBDEFB"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="14">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- Input và Send -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- TextBox -->
+                        <Border Grid.Column="0"
+                    Background="#FFFFFF"
+                    BorderBrush="#DEE2E6"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="12,10">
+                            <TextBox x:Name="InputBox"
+                         Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}"
+                         FontFamily="Segoe UI, Segoe UI Emoji"
+                         FontSize="14"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         VerticalContentAlignment="Center"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="False"/>
+                        </Border>
+
+                        <!-- Send Button -->
+                        <Button Grid.Column="1"
+                    Content="Send"
                     IsDefault="True"
-                    Margin="10,0,0,0"
-                    Padding="20,6"
-                    Background="#0144DB"
+                    Margin="12,0,0,0"
+                    Padding="24,10"
+                    Background="#0D6EFD"
                     Foreground="White"
-                    FontWeight="Bold"
-                    FontSize="16"
+                    FontWeight="SemiBold"
+                    FontSize="14"
                     BorderThickness="0"
                     Cursor="Hand"
                     Command="{Binding SendMessageCommand}">
-                        Gửi
-                    </Button>
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="#0D6EFD"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#0B5ED7"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
 
-                    <!-- ===== EMOJI POPUP ===== -->
-                    <Popup IsOpen="{Binding IsEmojiOpen}"
-                           Placement="Top"
-                           PlacementTarget="{Binding ElementName=InputBox}"
-                           StaysOpen="False">
-
-                        <Border Background="White"
-                            BorderBrush="Gray"
-                            BorderThickness="1"
-                            Width="300"
-                            Height="250">
-
-                            <ScrollViewer>
-                                <ItemsControl ItemsSource="{Binding Emojis}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Button Content="{Binding Emoji}"
+                        <!-- Emoji Popup -->
+                        <Popup IsOpen="{Binding IsEmojiOpen}"
+                   Placement="Top"
+                   PlacementTarget="{Binding ElementName=InputBox}"
+                   StaysOpen="False">
+                            <Border Background="White"
+                        BorderBrush="#DEE2E6"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Width="320"
+                        Height="280"
+                        Padding="12">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000"
+                                        Opacity="0.1"
+                                        BlurRadius="12"
+                                        ShadowDepth="0"/>
+                                </Border.Effect>
+                                <ScrollViewer>
+                                    <ItemsControl ItemsSource="{Binding Emojis}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Content="{Binding Emoji}"
                                             FontSize="20"
                                             Width="40"
                                             Height="40"
+                                            Margin="2"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Cursor="Hand"
                                             Command="{Binding DataContext.InsertEmojisCommand,
                                                       RelativeSource={RelativeSource AncestorType=Window}}"
-                                            CommandParameter="{Binding}"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-
-                        </Border>
-                    </Popup>
-
+                                            CommandParameter="{Binding}">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#F1F3F5"/>
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                        CornerRadius="4">
+                                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"/>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>
+
+        <!-- ================= SIDEBAR PHẢI - USERS ================= -->
+        <Border Grid.Column="2"
+                Background="#F8F9FA"
+                BorderBrush="#E9ECEF"
+                BorderThickness="1,0,0,0">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Border Grid.Row="0"
+                        Background="#FFFFFF"
+                        BorderBrush="#E9ECEF"
+                        BorderThickness="0,0,0,1"
+                        Padding="16,20">
+                    <TextBlock Text="Users"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="#212529"/>
+                </Border>
+
+                <!-- Connect Section -->
+                <Border Grid.Row="1"
+                        Background="#FFFFFF"
+                        BorderBrush="#E9ECEF"
+                        BorderThickness="0,0,0,1"
+                        Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Username"
+                                   FontSize="12"
+                                   FontWeight="Medium"
+                                   Foreground="#6C757D"
+                                   Margin="0,0,0,6"/>
+                        <Border Background="#FFFFFF"
+                                BorderBrush="#DEE2E6"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="10,8"
+                                Margin="0,0,0,12">
+                            <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                                     FontSize="14"
+                                     BorderThickness="0"
+                                     Background="Transparent"/>
+                        </Border>
+                        <Button x:Name="ConnectButton"
+                                Content="Connect"
+                                Padding="0,10"
+                                Background="#198754"
+                                Foreground="White"
+                                FontWeight="SemiBold"
+                                FontSize="14"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Command="{Binding ConnectToServerCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="#198754"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#157347"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            CornerRadius="4"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- Danh sách users -->
+                <ScrollViewer Grid.Row="2"
+                              VerticalScrollBarVisibility="Auto"
+                              Padding="16">
+                    <ListView ItemsSource="{Binding Users}"
+                              BorderThickness="0"
+                              Background="Transparent">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="8,6"
+                                        Background="#FFFFFF"
+                                        CornerRadius="4"
+                                        Margin="0,2">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse Width="8"
+                                                 Height="8"
+                                                 Fill="#198754"
+                                                 Margin="0,0,8,0"/>
+                                        <TextBlock Text="{Binding Username}"
+                                                   FontSize="14"
+                                                   Foreground="#212529"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListViewItem">
+                                            <ContentPresenter/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
+                </ScrollViewer>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

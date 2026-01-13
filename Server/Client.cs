@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -14,35 +15,66 @@ namespace ChatServer
         public Guid UID { get; set; }
         public TcpClient ClientSocket { get; set; }
 
+        public string _currentFileName;
+        public long _expectedFileSize;
+        public long _receivedBytes;
+
+        FileStream _fs;
+
         PacketReader _packetReader;
-        public Client (TcpClient client)
+        public Client(TcpClient client)
         {
             ClientSocket = client;
-            UID =Guid.NewGuid();
+            UID = Guid.NewGuid();
             _packetReader = new PacketReader(ClientSocket.GetStream());
 
             var opcode = _packetReader.ReadByte();
             Username = _packetReader.ReadMessage();
 
             Console.WriteLine($"{DateTime.Now}: Client has connected with the username: {Username}");
-        
+
             Task.Run(() => Process());
         }
 
         void Process()
         {
-            while(true)
+            while (true)
             {
                 try
                 {
                     var opcode = _packetReader.ReadByte();
                     switch (opcode)
                     {
-                        case 5: 
+                        case 5:
                             var message = _packetReader.ReadMessage();
                             Console.WriteLine($"{DateTime.Now}: {Username}: {message}");
                             Program.BroadcastMessage($"{DateTime.Now} {Username}:  {message}");
                             break;
+                        case 15:
+                            HandleFileStart();
+
+                            Program.BroadcastFileStart(
+                                Username,
+                                _currentFileName,
+                                _expectedFileSize
+                            );
+                            break;
+                        case 16:
+                            int chunkSize = _packetReader.ReadInt();
+                            byte[] buffer = _packetReader.ReadBytes(chunkSize);
+
+                            _fs.Write(buffer, 0, buffer.Length);
+                            _receivedBytes += buffer.Length;
+
+                            break;
+                        case 17:
+                            HandleFileEnd();
+                            Program.BroadcastFileUploaded(
+                                Username,
+                                _currentFileName
+                            );
+                            break;
+
                         default:
                             break;
                     }
@@ -54,7 +86,61 @@ namespace ChatServer
                     ClientSocket.Close();
                     break;
                 }
+
             }
         }
+
+        public void SendFileUploaded(string username, string fileName)
+        {
+            var packetBuilder = new PacketBuilder();
+            packetBuilder.WriteOpCode(18);
+            packetBuilder.WriteMessage(username);
+            packetBuilder.WriteMessage(fileName);
+            ClientSocket.Client.Send(packetBuilder.GetPacketBytes());
+        }
+
+        public void HandleFileStart()
+        {
+            _currentFileName = _packetReader.ReadMessage();
+            _expectedFileSize = _packetReader.ReadLong();
+            _receivedBytes = 0;
+
+            Directory.CreateDirectory("Uploads");
+
+            string path = Path.Combine("Uploads", _currentFileName);
+
+            _fs = new FileStream(
+                path,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 64 * 1024,
+                useAsync: false);
+
+            Console.WriteLine(
+                $"{Username} started uploading {_currentFileName} ({_expectedFileSize} bytes)"
+            );
+        }
+
+        public void HandleFileEnd()
+        {
+            _fs?.Flush();
+            _fs?.Close();
+            _fs = null;
+
+            Console.WriteLine(
+                $"{Username} finished uploading {_currentFileName}"
+            );
+
+            if (_receivedBytes != _expectedFileSize)
+            {
+                Console.WriteLine("File size mismatch");
+            }
+
+            _currentFileName = null;
+            _expectedFileSize = 0;
+            _receivedBytes = 0;
+        }
+
     }
 }
