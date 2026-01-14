@@ -39,14 +39,17 @@ namespace ChatServer.Net.IO
             _ms.Write(bytes, 0, bytes.Length);
         }
 
-        public void WriteLong(long value)
+        public void WriteBytes(byte[] data, int length)
         {
-            _ms.Write(BitConverter.GetBytes(value));
+            _ms.Write(data, 0, length);
         }
 
-        public void WriteBytes(byte[] buffer, int offset, int count)
+        public void WriteLong(long value)
         {
-            _ms.Write(buffer, offset, count);
+            byte[] bytes = BitConverter.GetBytes(value);
+            if (!BitConverter.IsLittleEndian)
+                Array.Reverse(bytes);
+            _ms.Write(bytes, 0, bytes.Length);
         }
     }
 }

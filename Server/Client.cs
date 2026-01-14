@@ -21,7 +21,9 @@ namespace ChatServer
 
         private string _uploadingFileName;
         private long _uploadingFileSize;
-        private MemoryStream _uploadingFileData;
+        private FileStream _uploadingFileStream;
+        private string _uploadTempPath;
+        private long _uploadingReceivedBytes;
         private string _uploadSender;
         private DateTime _uploadStartTime;
 
@@ -90,8 +92,16 @@ namespace ChatServer
                                 // block lỡ bị /.../filename
                                 _uploadingFileName = SanitizeFileName(unsafeFileName);
 
-                                int initialCapacity = (int)Math.Min(_uploadingFileSize, int.MaxValue);
-                                _uploadingFileData = new MemoryStream(initialCapacity);
+                                _uploadingReceivedBytes = 0;
+                                _uploadTempPath = Path.Combine(Path.GetTempPath(), $"upload_{Guid.NewGuid()}_{_uploadingFileName}");
+                                _uploadingFileStream = new FileStream(
+                                    _uploadTempPath,
+                                    FileMode.Create,
+                                    FileAccess.Write,
+                                    FileShare.None,
+                                    256 * 1024,  // 256KB buffer
+                                    FileOptions.Asynchronous
+                                );
 
                                 _uploadSender = Username;
                                 _uploadStartTime = DateTime.Now;
@@ -103,7 +113,7 @@ namespace ChatServer
                         case 16: // Upload chunk
                             lock (_uploadLock)
                             {
-                                if (_uploadingFileData == null)
+                                if (_uploadingFileStream == null)
                                 {
                                     Console.WriteLine($"{DateTime.Now}: {Username} sent chunk but no upload in progress");
                                     try
@@ -135,21 +145,13 @@ namespace ChatServer
                                 }
 
                                 byte[] chunk = _packetReader.ReadBytes(chunkSize);
-                                _uploadingFileData.Write(chunk, 0, chunk.Length);
 
-                                int percent = (int)((_uploadingFileData.Length * 100) / _uploadingFileSize);
+                                _uploadingFileStream.Write(chunk, 0, chunk.Length);
+                                _uploadingReceivedBytes += chunk.Length;
+                                int percent = (int)((_uploadingReceivedBytes * 100) / _uploadingFileSize);
 
-                                // Log progress mỗi 10%
-                                if (percent % 10 == 0 && _uploadingFileData.Length > 0)
-                                {
-                                    long lastLog = (_uploadingFileData.Length / (_uploadingFileSize / 10)) * (_uploadingFileSize / 10);
-                                    if (Math.Abs(_uploadingFileData.Length - lastLog) < chunkSize)
-                                    {
-                                        Console.WriteLine($"{DateTime.Now}: {Username} upload progress: {percent}%");
-                                    }
-                                }
 
-                                if (_uploadingFileData.Length > _uploadingFileSize)
+                                if (_uploadingReceivedBytes > _uploadingFileSize)
                                 {
                                     Console.WriteLine($"{DateTime.Now}: Upload size mismatch for {_uploadingFileName}");
                                     CleanupUpload();
@@ -162,24 +164,40 @@ namespace ChatServer
                         case 17: // Upload complete
                             lock (_uploadLock)
                             {
-                                if (_uploadingFileData != null && !string.IsNullOrEmpty(_uploadSender) && !string.IsNullOrEmpty(_uploadingFileName))
+                                if (_uploadingFileStream != null && !string.IsNullOrEmpty(_uploadSender) && !string.IsNullOrEmpty(_uploadingFileName))
                                 {
-                                    Console.WriteLine($"{DateTime.Now}: {Username} completed upload: {_uploadingFileName} ({_uploadingFileData.Length} bytes)");
+                                    // Đóng file stream
+                                    _uploadingFileStream.Flush();
+                                    _uploadingFileStream.Close();
+                                    _uploadingFileStream = null;
 
-                                    // Kiểm tra kích thước cuối cùng
-                                    if (_uploadingFileData.Length != _uploadingFileSize)
+                                    Console.WriteLine($"{DateTime.Now}: {Username} completed upload: {_uploadingFileName} ({_uploadingReceivedBytes} bytes)");
+
+                                    if (_uploadingReceivedBytes != _uploadingFileSize)
                                     {
-                                        Console.WriteLine($"{DateTime.Now}: Warning - Expected {_uploadingFileSize} bytes but got {_uploadingFileData.Length} bytes");
+                                        Console.WriteLine($"{DateTime.Now}: Warning - Expected {_uploadingFileSize} bytes but got {_uploadingReceivedBytes} bytes");
                                     }
 
-                                    Program.BroadcastFile(_uploadSender, _uploadingFileName, _uploadingFileData.ToArray());
+                                    string finalPath = Path.Combine(Program._fileStorageFolder, _uploadingFileName);
 
-                                    CleanupUpload();
-                                }
-                                else
-                                {
-                                    Console.WriteLine($"{DateTime.Now}: {Username} sent upload complete but upload was not initialized properly");
-                                    CleanupUpload();
+                                    int counter = 1;
+                                    while (File.Exists(finalPath))
+                                    {
+                                        string nameWithoutExt = Path.GetFileNameWithoutExtension(_uploadingFileName);
+                                        string extension = Path.GetExtension(_uploadingFileName);
+                                        finalPath = Path.Combine(Program._fileStorageFolder, $"{nameWithoutExt}_{counter}{extension}");
+                                        counter++;
+                                    }
+
+                                    File.Move(_uploadTempPath, finalPath);
+
+                                    Program.BroadcastFileNotification(_uploadSender, Path.GetFileName(finalPath));
+
+                                    _uploadingFileName = null;
+                                    _uploadingFileSize = 0;
+                                    _uploadingReceivedBytes = 0;
+                                    _uploadSender = null;
+                                    _uploadTempPath = null;
                                 }
                             }
                             break;
@@ -248,19 +266,22 @@ namespace ChatServer
 
         private void CleanupUpload()
         {
-            // Đã ở trong lock rồi nên không cần lock lại
-            if (_uploadingFileData != null)
+            if (_uploadingFileStream != null)
             {
                 try
                 {
-                    _uploadingFileData.Dispose();
+                    _uploadingFileStream.Close();
+                    _uploadingFileStream.Dispose();
                 }
                 catch { }
-                _uploadingFileData = null;
+                _uploadingFileStream = null;
             }
-            _uploadingFileName = null;
-            _uploadingFileSize = 0;
-            _uploadSender = null;
+
+            if (!string.IsNullOrEmpty(_uploadTempPath) && File.Exists(_uploadTempPath))
+            {
+                try { File.Delete(_uploadTempPath); }
+                catch { }
+            }
         }
 
         private void SendUploadError(string errorMessage)

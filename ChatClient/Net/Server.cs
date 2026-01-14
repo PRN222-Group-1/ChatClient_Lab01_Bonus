@@ -144,6 +144,12 @@ namespace ChatClient.Net
                                 _downloadExpectedSize = packetReader.ReadLong();
                                 _downloadReceivedBytes = 0;
 
+                                if (string.IsNullOrEmpty(_downloadFilePath))
+                                {
+                                    Console.WriteLine($"ERROR: Download path not set! Call SetDownloadPath() first");
+                                    break;
+                                }
+
                                 if (!string.IsNullOrEmpty(_downloadFilePath))
                                 {
                                     _downloadFileStream = new FileStream(

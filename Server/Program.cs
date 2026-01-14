@@ -11,7 +11,7 @@ namespace ChatServer
         static List<Client> _users;
 
         static ConcurrentDictionary<string, byte[]> _fileStorage = new();
-        static string _fileStorageFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ServerFiles");
+        public static string _fileStorageFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ServerFiles");
 
         private const long MAX_CACHE_SIZE = 500 * 1024 * 1024; // 500MB
         private static long _currentCacheSize = 0;
@@ -64,103 +64,66 @@ namespace ChatServer
             }
         }
 
-        public static void BroadcastFile(string sender, string fileName, byte[] fileData)
+        public static void BroadcastFileNotification(string senderName, string fileName)
         {
-
-            if (_currentCacheSize + fileData.Length > MAX_CACHE_SIZE)
+            foreach (var client in _users)
             {
-                Console.WriteLine("Cache full, clearing old files...");
-                _fileStorage.Clear();
-                _currentCacheSize = 0;
-            }
-
-            string uniqueFileName = $"{Path.GetFileNameWithoutExtension(fileName)}_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(fileName)}";
-
-            _fileStorage[uniqueFileName] = fileData;
-
-            _currentCacheSize += fileData.Length;
-
-            try
-            {
-                string filePath = Path.Combine(_fileStorageFolder, fileName);
-                File.WriteAllBytes(filePath, fileData);
-                Console.WriteLine($"File saved to disk: {filePath}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error saving file: {ex.Message}");
-            }
-
-            foreach (var user in _users)
-            {
-                try
-                {
-                    var filePacket = new Net.IO.PacketBuilder();
-                    filePacket.WriteOpCode(15); // File received notification
-                    filePacket.WriteMessage(sender);
-                    filePacket.WriteMessage(uniqueFileName);
-                    user.ClientSocket.Client.Send(filePacket.GetPacketBytes());
-
-                    Console.WriteLine($"Broadcast file notification to {user.Username}: {fileName}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error broadcasting to {user.Username}: {ex.Message}");
-                }
+                var packetBuilder = new PacketBuilder();
+                packetBuilder.WriteOpCode(15);  // File notification
+                packetBuilder.WriteMessage(senderName);
+                packetBuilder.WriteMessage(fileName);
+                client.ClientSocket.Client.Send(packetBuilder.GetPacketBytes());
             }
         }
-        public static void SendFileToClient(Client recipient, string fileName)
+
+        // ✅ THÊM method này để gửi file streaming qua opcode 19-21
+        public static void SendFileToClient(Client client, string fileName)
         {
-            if (!_fileStorage.TryGetValue(fileName, out byte[] fileData))
+            string filePath = Path.Combine(_fileStorageFolder, fileName);
+
+            if (!File.Exists(filePath))
             {
-                string filePath = Path.Combine(_fileStorageFolder, fileName);
-                if (File.Exists(filePath))
-                {
-                    fileData = File.ReadAllBytes(filePath);
-                    _fileStorage[fileName] = fileData;
-                }
-                else
-                {
-                    Console.WriteLine($"File not found: {fileName}");
-                    return;
-                }
+                Console.WriteLine($"{DateTime.Now}: File not found: {fileName}");
+                return;
             }
 
             try
             {
-                var startPacket = new Net.IO.PacketBuilder();
+                var fileInfo = new FileInfo(filePath);
+
+                // Gửi opcode 19: Start download
+                var startPacket = new PacketBuilder();
                 startPacket.WriteOpCode(19);
                 startPacket.WriteMessage(fileName);
-                startPacket.WriteLong(fileData.Length);
-                recipient.ClientSocket.Client.Send(startPacket.GetPacketBytes());
+                startPacket.WriteLong(fileInfo.Length);
+                client.ClientSocket.Client.Send(startPacket.GetPacketBytes());
 
-                // Send file in chunks
-                int chunkSize = 64 * 1024;
-                int totalChunks = (int)Math.Ceiling(fileData.Length / (double)chunkSize);
+                // Gửi file chunks qua opcode 20
+                const int chunkSize = 64 * 1024; // 64KB
+                byte[] buffer = new byte[chunkSize];
 
-                for (int i = 0; i < totalChunks; i++)
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, chunkSize))
                 {
-                    int offset = i * chunkSize;
-                    int size = Math.Min(chunkSize, fileData.Length - offset);
-
-                    var chunkPacket = new Net.IO.PacketBuilder();
-                    chunkPacket.WriteOpCode(20);
-                    chunkPacket.WriteInt(size);
-                    chunkPacket.WriteBytes(fileData, offset, size);
-                    recipient.ClientSocket.Client.Send(chunkPacket.GetPacketBytes());
-
-                    Thread.Sleep(1);
+                    int bytesRead;
+                    while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        var chunkPacket = new PacketBuilder();
+                        chunkPacket.WriteOpCode(20);
+                        chunkPacket.WriteInt(bytesRead);
+                        chunkPacket.WriteBytes(buffer, bytesRead);
+                        client.ClientSocket.Client.Send(chunkPacket.GetPacketBytes());
+                    }
                 }
 
-                var completePacket = new Net.IO.PacketBuilder();
-                completePacket.WriteOpCode(21);
-                recipient.ClientSocket.Client.Send(completePacket.GetPacketBytes());
+                var endPacket = new PacketBuilder();
+                endPacket.WriteOpCode(21);
+                client.ClientSocket.Client.Send(endPacket.GetPacketBytes());
 
-                Console.WriteLine($"File sent to {recipient.Username}: {fileName} ({fileData.Length} bytes)");
+                Console.WriteLine($"{DateTime.Now}: Sent file {fileName} to {client.Username}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending file: {ex.Message}");
+                Console.WriteLine($"{DateTime.Now}: Error sending file: {ex.Message}");
             }
         }
 
