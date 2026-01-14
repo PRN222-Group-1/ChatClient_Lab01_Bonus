@@ -53,7 +53,6 @@ namespace ChatClient.Net.IO
 
         public void WriteBytes(byte[] buffer, int length)
         {
-            WriteInt(length);
             _ms.Write(buffer, 0, length);
         }
 
