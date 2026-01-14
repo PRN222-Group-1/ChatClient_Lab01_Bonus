@@ -201,7 +201,7 @@ namespace ChatClient.MVVM.ViewModel
 
                         Messages.Add(fileMessage);
 
-                        _ = Task.Run(async () =>
+                        _ = Task.Run(async () => 
                         {
                             try
                             {
