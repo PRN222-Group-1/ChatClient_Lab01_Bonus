@@ -69,7 +69,7 @@ namespace ChatServer
             foreach (var client in _users)
             {
                 var packetBuilder = new PacketBuilder();
-                packetBuilder.WriteOpCode(15);  // File notification
+                packetBuilder.WriteOpCode(25);  // File notification
                 packetBuilder.WriteMessage(senderName);
                 packetBuilder.WriteMessage(fileName);
                 client.ClientSocket.Client.Send(packetBuilder.GetPacketBytes());
@@ -91,14 +91,12 @@ namespace ChatServer
             {
                 var fileInfo = new FileInfo(filePath);
 
-                // Gửi opcode 19: Start download
                 var startPacket = new PacketBuilder();
-                startPacket.WriteOpCode(19);
+                startPacket.WriteOpCode(30);
                 startPacket.WriteMessage(fileName);
                 startPacket.WriteLong(fileInfo.Length);
                 client.ClientSocket.Client.Send(startPacket.GetPacketBytes());
 
-                // Gửi file chunks qua opcode 20
                 const int chunkSize = 64 * 1024; // 64KB
                 byte[] buffer = new byte[chunkSize];
 
@@ -108,7 +106,7 @@ namespace ChatServer
                     while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
                     {
                         var chunkPacket = new PacketBuilder();
-                        chunkPacket.WriteOpCode(20);
+                        chunkPacket.WriteOpCode(31);
                         chunkPacket.WriteInt(bytesRead);
                         chunkPacket.WriteBytes(buffer, bytesRead);
                         client.ClientSocket.Client.Send(chunkPacket.GetPacketBytes());
@@ -116,7 +114,7 @@ namespace ChatServer
                 }
 
                 var endPacket = new PacketBuilder();
-                endPacket.WriteOpCode(21);
+                endPacket.WriteOpCode(32);
                 client.ClientSocket.Client.Send(endPacket.GetPacketBytes());
 
                 Console.WriteLine($"{DateTime.Now}: Sent file {fileName} to {client.Username}");

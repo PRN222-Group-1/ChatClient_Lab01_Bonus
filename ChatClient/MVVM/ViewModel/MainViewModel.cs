@@ -128,16 +128,6 @@ namespace ChatClient.MVVM.ViewModel
             _server.userDisconnectedEvent += UserDisconnected;
             _server.fileReceivedEvent += FileReceived;
 
-            _server.fileUploadedEvent += (sender, fileName) =>
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    Messages.Add(new TextMessage
-                    {
-                        Text = $"{sender} uploaded file: {fileName}"
-                    });
-                });
-            };
 
             _server.downloadProgressEvent += (fileName, percent) =>
             {
@@ -255,7 +245,6 @@ namespace ChatClient.MVVM.ViewModel
             });
 
             ToggleEmojiPanelCommand = new RelayCommand(o => IsEmojiOpen = !IsEmojiOpen);
-
             DownloadFileCommand = new RelayCommand(o =>
             {
                 if (o is FileMessage fileMsg)
@@ -268,17 +257,14 @@ namespace ChatClient.MVVM.ViewModel
 
                     if (saveDialog.ShowDialog() == true)
                     {
-                        _server.SetDownloadPath(saveDialog.FileName);
-
                         fileMsg.IsDownloading = true;
                         fileMsg.DownloadProgress = 0;
                         fileMsg.DownloadStatus = "Đang chuẩn bị...";
 
-                        _server.RequestDownloadFile(fileMsg.FileName);
+                        _server.RequestDownloadFile(fileMsg.FileName, saveDialog.FileName);
                     }
                 }
             });
-
 
         }
 

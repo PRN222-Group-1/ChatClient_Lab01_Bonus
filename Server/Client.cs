@@ -293,7 +293,7 @@ namespace ChatServer
                     if (_isDisconnected) return;
 
                     var packetBuilder = new PacketBuilder();
-                    packetBuilder.WriteOpCode(19); // Error opcode
+                    packetBuilder.WriteOpCode(99); // Error opcode
                     packetBuilder.WriteMessage(errorMessage);
                     ClientSocket.Client.Send(packetBuilder.GetPacketBytes());
                 }
