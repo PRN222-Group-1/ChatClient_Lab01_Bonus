@@ -10,19 +10,17 @@ namespace ChatServer.Net.IO
     public class PacketReader : BinaryReader
     {
         private NetworkStream _ns;
+
         public PacketReader(NetworkStream ns) : base(ns)
         {
             _ns = ns;
         }
 
-        public string ReadMessage ()
+        public string ReadMessage()
         {
             int length = ReadInt32();
-
             byte[] buffer = new byte[length];
-
             int totalRead = 0;
-
             while (totalRead < length)
             {
                 int read = _ns.Read(buffer, totalRead, length - totalRead);
@@ -30,7 +28,6 @@ namespace ChatServer.Net.IO
                     return null;
                 totalRead += read;
             }
-
             return Encoding.UTF8.GetString(buffer);
         }
 
@@ -38,19 +35,15 @@ namespace ChatServer.Net.IO
         {
             byte[] buffer = new byte[4];
             int read = 0;
-
             while (read < 4)
             {
                 int bytes = _ns.Read(buffer, read, 4 - read);
                 if (bytes == 0)
                     throw new Exception("Disconnected");
-
                 read += bytes;
             }
-
             if (!BitConverter.IsLittleEndian)
                 Array.Reverse(buffer);
-
             return BitConverter.ToInt32(buffer, 0);
         }
 
@@ -58,19 +51,15 @@ namespace ChatServer.Net.IO
         {
             byte[] buffer = new byte[length];
             int read = 0;
-
             while (read < length)
             {
                 int bytes = _ns.Read(buffer, read, length - read);
                 if (bytes == 0)
                     throw new Exception("Disconnected");
-
                 read += bytes;
             }
-
             return buffer;
         }
-
 
         public long ReadLong()
         {
@@ -86,6 +75,14 @@ namespace ChatServer.Net.IO
             if (!BitConverter.IsLittleEndian)
                 Array.Reverse(buffer);
             return BitConverter.ToInt64(buffer, 0);
+        }
+
+        public new byte ReadByte()
+        {
+            int b = _ns.ReadByte();
+            if (b == -1)
+                throw new Exception("Disconnected");
+            return (byte)b;
         }
     }
 }

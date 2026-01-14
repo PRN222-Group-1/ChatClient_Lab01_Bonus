@@ -15,8 +15,8 @@ namespace ChatServer
         public Guid UID { get; set; }
         public TcpClient ClientSocket { get; set; }
 
-        // Thêm lock để tránh race condition
         private readonly object _socketLock = new object();
+        private readonly object _uploadLock = new object();
         private volatile bool _isDisconnected = false;
 
         private string _uploadingFileName;
@@ -25,8 +25,8 @@ namespace ChatServer
         private string _uploadSender;
         private DateTime _uploadStartTime;
 
-        private const int UPLOAD_TIMEOUT_SECONDS = 300;
-        private const long MAX_FILE_SIZE = 1200 * 1024 * 1024; // 1.2GB
+        private const int UPLOAD_TIMEOUT_SECONDS = 600; // 10 phút cho file lớn
+        private const long MAX_FILE_SIZE = 2L * 1024 * 1024 * 1024; // 2GB 
 
         PacketReader _packetReader;
 
@@ -34,6 +34,11 @@ namespace ChatServer
         {
             ClientSocket = client;
             UID = Guid.NewGuid();
+
+            // Tăng buffer size cho file lớn
+            ClientSocket.ReceiveBufferSize = 256 * 1024; // 256KB
+            ClientSocket.SendBufferSize = 256 * 1024;
+
             _packetReader = new PacketReader(ClientSocket.GetStream());
 
             var opcode = _packetReader.ReadByte();
@@ -50,37 +55,73 @@ namespace ChatServer
             {
                 try
                 {
-                    var opcode = _packetReader.ReadByte();
+                    byte opcode = _packetReader.ReadByte();
+
+                    // Log để debug
+                    if (opcode != 5 && opcode != 16) // Không log quá nhiều cho message và chunk
+                    {
+                        Console.WriteLine($"{DateTime.Now}: {Username} - Received opcode: {opcode}");
+                    }
+
                     switch (opcode)
                     {
-                        case 5:
+                        case 5: // Message
                             var message = _packetReader.ReadMessage();
                             Console.WriteLine($"{DateTime.Now}: {Username}: {message}");
                             Program.BroadcastMessage($"{DateTime.Now} {Username}: {message}");
                             break;
 
                         case 15: // Upload start
-                            string unsafeFileName = _packetReader.ReadMessage();
-                            _uploadingFileSize = _packetReader.ReadLong();
-
-                            if (_uploadingFileSize > MAX_FILE_SIZE)
+                            lock (_uploadLock)
                             {
-                                Console.WriteLine($"{DateTime.Now}: {Username} tried to upload file too large: {_uploadingFileSize} bytes");
-                                SendUploadError("File size exceeds maximum allowed size");
-                                break;
+                                string unsafeFileName = _packetReader.ReadMessage();
+                                _uploadingFileSize = _packetReader.ReadLong();
+
+                                Console.WriteLine($"{DateTime.Now}: {Username} upload request - Size: {_uploadingFileSize} bytes, Name: {unsafeFileName}");
+
+                                if (_uploadingFileSize > MAX_FILE_SIZE)
+                                {
+                                    Console.WriteLine($"{DateTime.Now}: {Username} tried to upload file too large: {_uploadingFileSize} bytes");
+                                    SendUploadError("File size exceeds maximum allowed size");
+                                    break;
+                                }
+
+                                if (_uploadingFileSize <= 0)
+                                {
+                                    Console.WriteLine($"{DateTime.Now}: {Username} invalid file size: {_uploadingFileSize}");
+                                    SendUploadError("Invalid file size");
+                                    break;
+                                }
+
+                                // block lỡ bị /.../filename
+                                _uploadingFileName = SanitizeFileName(unsafeFileName);
+
+                                int initialCapacity = (int)Math.Min(_uploadingFileSize, int.MaxValue);
+                                _uploadingFileData = new MemoryStream(initialCapacity);
+
+                                _uploadSender = Username;
+                                _uploadStartTime = DateTime.Now;
+
+                                Console.WriteLine($"{DateTime.Now}: {Username} starting upload: {_uploadingFileName} ({_uploadingFileSize} bytes)");
                             }
-
-                            _uploadingFileName = SanitizeFileName(unsafeFileName);
-                            _uploadingFileData = new MemoryStream();
-                            _uploadSender = Username;
-                            _uploadStartTime = DateTime.Now;
-
-                            Console.WriteLine($"{DateTime.Now}: {Username} starting upload: {_uploadingFileName} ({_uploadingFileSize} bytes)");
                             break;
 
                         case 16: // Upload chunk
-                            if (_uploadingFileData != null)
+                            lock (_uploadLock)
                             {
+                                if (_uploadingFileData == null)
+                                {
+                                    Console.WriteLine($"{DateTime.Now}: {Username} sent chunk but no upload in progress");
+                                    try
+                                    {
+                                        int skipSize = _packetReader.ReadInt();
+                                        _packetReader.ReadBytes(skipSize);
+                                    }
+                                    catch { }
+                                    break;
+                                }
+
+                                // timeout
                                 if ((DateTime.Now - _uploadStartTime).TotalSeconds > UPLOAD_TIMEOUT_SECONDS)
                                 {
                                     Console.WriteLine($"{DateTime.Now}: Upload timeout: {_uploadingFileName}");
@@ -90,12 +131,30 @@ namespace ChatServer
                                 }
 
                                 int chunkSize = _packetReader.ReadInt();
+
+                                if (chunkSize <= 0 || chunkSize > 10 * 1024 * 1024) // Max 10MB per chunk
+                                {
+                                    Console.WriteLine($"{DateTime.Now}: Invalid chunk size: {chunkSize}");
+                                    CleanupUpload();
+                                    SendUploadError("Invalid chunk size");
+                                    break;
+                                }
+
                                 byte[] chunk = _packetReader.ReadBytes(chunkSize);
                                 _uploadingFileData.Write(chunk, 0, chunk.Length);
 
                                 int percent = (int)((_uploadingFileData.Length * 100) / _uploadingFileSize);
 
-                                // Kiểm tra nếu vượt quá kích thước dự kiến
+                                // Log progress mỗi 10%
+                                if (percent % 10 == 0 && _uploadingFileData.Length > 0)
+                                {
+                                    long lastLog = (_uploadingFileData.Length / (_uploadingFileSize / 10)) * (_uploadingFileSize / 10);
+                                    if (Math.Abs(_uploadingFileData.Length - lastLog) < chunkSize)
+                                    {
+                                        Console.WriteLine($"{DateTime.Now}: {Username} upload progress: {percent}%");
+                                    }
+                                }
+
                                 if (_uploadingFileData.Length > _uploadingFileSize)
                                 {
                                     Console.WriteLine($"{DateTime.Now}: Upload size mismatch for {_uploadingFileName}");
@@ -107,18 +166,27 @@ namespace ChatServer
                             break;
 
                         case 17: // Upload complete
-                            if (_uploadingFileData != null && !string.IsNullOrEmpty(_uploadSender) && !string.IsNullOrEmpty(_uploadingFileName))
+                            lock (_uploadLock)
                             {
-                                Console.WriteLine($"{DateTime.Now}: {Username} completed upload: {_uploadingFileName}");
+                                if (_uploadingFileData != null && !string.IsNullOrEmpty(_uploadSender) && !string.IsNullOrEmpty(_uploadingFileName))
+                                {
+                                    Console.WriteLine($"{DateTime.Now}: {Username} completed upload: {_uploadingFileName} ({_uploadingFileData.Length} bytes)");
 
-                                Program.BroadcastFile(_uploadSender, _uploadingFileName, _uploadingFileData.ToArray());
+                                    // Kiểm tra kích thước cuối cùng
+                                    if (_uploadingFileData.Length != _uploadingFileSize)
+                                    {
+                                        Console.WriteLine($"{DateTime.Now}: Warning - Expected {_uploadingFileSize} bytes but got {_uploadingFileData.Length} bytes");
+                                    }
 
-                                CleanupUpload();
-                            }
-                            else
-                            {
-                                Console.WriteLine($"{DateTime.Now}: {Username} sent upload complete but upload was not initialized properly");
-                                CleanupUpload();
+                                    Program.BroadcastFile(_uploadSender, _uploadingFileName, _uploadingFileData.ToArray());
+
+                                    CleanupUpload();
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"{DateTime.Now}: {Username} sent upload complete but upload was not initialized properly");
+                                    CleanupUpload();
+                                }
                             }
                             break;
 
@@ -129,13 +197,32 @@ namespace ChatServer
                             break;
 
                         default:
-                            Console.WriteLine($"{DateTime.Now}: Unknown opcode {opcode} from {Username}");
                             break;
                     }
                 }
+                catch (IOException ioEx)
+                {
+                    Console.WriteLine($"{DateTime.Now}: {Username} ({UID}): Network error: {ioEx.Message}");
+                    Disconnect();
+                    break;
+                }
+                catch (ObjectDisposedException)
+                {
+                    Console.WriteLine($"{DateTime.Now}: {Username} ({UID}): Connection closed");
+                    Disconnect();
+                    break;
+                }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"{DateTime.Now}: {Username} ({UID}): Exception occurred: {ex.Message}");
+                    Console.WriteLine($"{DateTime.Now}: {Username} ({UID}): Exception: {ex.GetType().Name} - {ex.Message}");
+                    Console.WriteLine($"Stack trace: {ex.StackTrace}");
+
+                    // Cleanup upload nếu có lỗi
+                    lock (_uploadLock)
+                    {
+                        CleanupUpload();
+                    }
+
                     Disconnect();
                     break;
                 }
@@ -144,6 +231,11 @@ namespace ChatServer
 
         private string SanitizeFileName(string fileName)
         {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return $"file_{Guid.NewGuid()}.bin";
+            }
+
             string safeName = Path.GetFileName(fileName);
 
             char[] invalidChars = Path.GetInvalidFileNameChars();
@@ -162,9 +254,14 @@ namespace ChatServer
 
         private void CleanupUpload()
         {
+            // Đã ở trong lock rồi nên không cần lock lại
             if (_uploadingFileData != null)
             {
-                _uploadingFileData.Dispose();
+                try
+                {
+                    _uploadingFileData.Dispose();
+                }
+                catch { }
                 _uploadingFileData = null;
             }
             _uploadingFileName = null;
@@ -196,14 +293,26 @@ namespace ChatServer
         {
             lock (_socketLock)
             {
-                if (_isDisconnected) return; // Tránh disconnect nhiều lần
+                if (_isDisconnected) return;
 
                 _isDisconnected = true;
 
-                CleanupUpload();
+                // Cleanup upload nếu đang trong quá trình upload
+                lock (_uploadLock)
+                {
+                    CleanupUpload();
+                }
 
                 Console.WriteLine($"{DateTime.Now}: {Username} ({UID}) has disconnected.");
-                Program.BroadcastDisconnect(UID.ToString());
+
+                try
+                {
+                    Program.BroadcastDisconnect(UID.ToString());
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"{DateTime.Now}: Error broadcasting disconnect: {ex.Message}");
+                }
 
                 try
                 {
@@ -234,9 +343,7 @@ namespace ChatServer
             catch (Exception ex)
             {
                 Console.WriteLine($"{DateTime.Now}: Failed to send file notification to {Username}: {ex.Message}");
-                Disconnect();
             }
         }
-
     }
 }
