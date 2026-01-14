@@ -22,7 +22,7 @@ namespace ChatClient.Net.IO
 
         public void WriteMessage (string msg)
         {
-            //reseave 4 bytes for length of the message
+            //reserve 4 bytes for length of the message
             var msgBytes = Encoding.UTF8.GetBytes(msg);
             _ms.Write(BitConverter.GetBytes(msgBytes.Length));
             _ms.Write(msgBytes);
@@ -53,7 +53,6 @@ namespace ChatClient.Net.IO
 
         public void WriteBytes(byte[] buffer, int length)
         {
-            WriteInt(length);
             _ms.Write(buffer, 0, length);
         }
 
