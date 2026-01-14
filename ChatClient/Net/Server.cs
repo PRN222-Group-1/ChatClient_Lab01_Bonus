@@ -157,7 +157,7 @@ namespace ChatClient.Net
                                 }
                                 break;
 
-                            case 20: 
+                            case 20:
                                 if (_downloadFileStream != null)
                                 {
                                     int sizeFile = packetReader.ReadInt();
@@ -166,7 +166,7 @@ namespace ChatClient.Net
                                     _downloadReceivedBytes += data.Length;
 
                                     int percent = (int)((_downloadReceivedBytes * 100) / _downloadExpectedSize);
-                                    downloadProgressEvent?.Invoke(_downloadFileName, percent);
+                                    downloadProgressEvent?.Invoke(_downloadFileName, percent); 
                                 }
                                 break;
 

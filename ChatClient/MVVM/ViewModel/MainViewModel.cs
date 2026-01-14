@@ -21,7 +21,6 @@ namespace ChatClient.MVVM.ViewModel
         private string _username;
         private bool _isEmojiOpen;
         private string _pendingFilePath;
-        private string _uploadProgress;
 
         public ObservableCollection<User> Users { get; }
         public ObservableCollection<MessageModel> Messages { get; }
@@ -98,6 +97,7 @@ namespace ChatClient.MVVM.ViewModel
             }
         }
 
+        private string _uploadProgress;
         public string UploadProgress
         {
             get => _uploadProgress;
@@ -110,6 +110,7 @@ namespace ChatClient.MVVM.ViewModel
         }
 
         public bool IsUploading => !string.IsNullOrEmpty(UploadProgress);
+
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -146,7 +147,7 @@ namespace ChatClient.MVVM.ViewModel
                         .FirstOrDefault(m => m.FileName == fileName);
                     if (fileMsg != null)
                     {
-                        fileMsg.DownloadProgress = percent;
+                        fileMsg.DownloadProgress = percent;  // Dòng này trigger property changed
                         fileMsg.DownloadStatus = $"Đang tải... {percent}%";
                     }
                 });
@@ -165,8 +166,6 @@ namespace ChatClient.MVVM.ViewModel
                     }
                 });
             };
-
-
 
             ConnectToServerCommand = new RelayCommand(
                 o => _server.ConnectToServer(Username ?? "hello"),
@@ -196,7 +195,21 @@ namespace ChatClient.MVVM.ViewModel
                     if (!string.IsNullOrEmpty(PendingFilePath))
                     {
                         var filePath = PendingFilePath;
-                        PendingFilePath = null; 
+                        var fileName = Path.GetFileName(filePath);
+                        PendingFilePath = null;
+
+                        var fileMessage = new FileMessage
+                        {
+                            FileName = fileName,
+                            FileExtension = Path.GetExtension(fileName),
+                            FileIcon = FileMessage.GetFileIcon(Path.GetExtension(fileName)),
+                            Sender = Username,
+                            IsUploading = true,
+                            UploadProgress = 0,
+                            UploadStatus = "Đang chuẩn bị..."
+                        };
+
+                        Messages.Add(fileMessage);
 
                         _ = Task.Run(async () =>
                         {
@@ -206,22 +219,24 @@ namespace ChatClient.MVVM.ViewModel
                                 {
                                     Application.Current.Dispatcher.Invoke(() =>
                                     {
-                                        UploadProgress = $"Uploading {Path.GetFileName(filePath)}... {percent}%";
+                                        fileMessage.UploadProgress = percent;
+                                        fileMessage.UploadStatus = $"Đang tải lên... {percent}%";
                                     });
+                                });
+
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    fileMessage.IsUploading = false;
+                                    fileMessage.UploadProgress = 0;
+                                    fileMessage.UploadStatus = null;
                                 });
                             }
                             catch (Exception ex)
                             {
                                 Application.Current.Dispatcher.Invoke(() =>
                                 {
-                                    MessageBox.Show($"Upload failed: {ex.Message}");
-                                });
-                            }
-                            finally
-                            {
-                                Application.Current.Dispatcher.Invoke(() =>
-                                {
-                                    UploadProgress = null;
+                                    fileMessage.IsUploading = false;
+                                    fileMessage.UploadStatus = "Tải lên thất bại";
                                 });
                             }
                         });
@@ -229,7 +244,6 @@ namespace ChatClient.MVVM.ViewModel
                 },
                 o => !string.IsNullOrWhiteSpace(Message) || !string.IsNullOrEmpty(PendingFilePath)
             );
-
 
 
             InsertEmojisCommand = new RelayCommand(o =>
@@ -278,6 +292,9 @@ namespace ChatClient.MVVM.ViewModel
             Application.Current.Dispatcher.Invoke(() =>
             {
                 var fileExtension = Path.GetExtension(fileName);
+
+                if (sender == Username)
+                    return;
 
                 Messages.Add(new FileMessage
                 {

@@ -75,6 +75,7 @@ namespace ChatServer
             {
                 try
                 {
+
                     user.SendFileUploaded(username, fileName);
                 }
                 catch

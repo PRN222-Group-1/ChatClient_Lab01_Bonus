@@ -32,22 +32,23 @@
         </DataTemplate>
 
         <!-- Template cho file với progress bar -->
+        <!-- Template cho file với upload & download progress -->
         <DataTemplate DataType="{x:Type local:FileMessage}">
             <StackPanel Margin="5,2" HorizontalAlignment="Left">
                 <!-- Sender name -->
                 <TextBlock Text="{Binding Sender}" 
-                           FontSize="11" 
-                           Foreground="#666"
-                           Margin="8,0,0,2" />
+                   FontSize="11" 
+                   Foreground="#666"
+                   Margin="8,0,0,2" />
 
                 <!-- File card -->
                 <Border Background="White" 
-                        BorderBrush="#E0E0E0" 
-                        BorderThickness="1"
-                        CornerRadius="8" 
-                        Padding="12"
-                        MinWidth="280"
-                        MaxWidth="350">
+                BorderBrush="#E0E0E0" 
+                BorderThickness="1"
+                CornerRadius="8" 
+                Padding="12"
+                MinWidth="280"
+                MaxWidth="350">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -64,31 +65,31 @@
 
                             <!-- File icon -->
                             <Border Grid.Column="0"
-                                    Background="#E8F5E9"
-                                    CornerRadius="8"
-                                    Width="48"
-                                    Height="48"
-                                    Margin="0,0,12,0">
+                            Background="#E8F5E9"
+                            CornerRadius="8"
+                            Width="48"
+                            Height="48"
+                            Margin="0,0,12,0">
                                 <TextBlock Text="{Binding FileIcon}"
-                                           FontSize="24"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center" />
+                                   FontSize="24"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
                             </Border>
 
                             <!-- File details -->
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding FileName}"
-                                           FontWeight="Medium"
-                                           FontSize="13"
-                                           Foreground="#333"
-                                           TextTrimming="CharacterEllipsis"
-                                           MaxWidth="150" />
+                                   FontWeight="Medium"
+                                   FontSize="13"
+                                   Foreground="#333"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="150" />
 
-                                <!-- Extension - ẩn khi đang download -->
+                                <!-- Extension - ẩn khi đang upload/download -->
                                 <TextBlock Text="{Binding FileExtension}"
-                                           FontSize="11"
-                                           Foreground="#999"
-                                           Margin="0,2,0,0">
+                                   FontSize="11"
+                                   Foreground="#999"
+                                   Margin="0,2,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Visible"/>
@@ -96,46 +97,50 @@
                                                 <DataTrigger Binding="{Binding IsDownloading}" Value="True">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-
-                                <!-- Download status - hiện khi đang download -->
-                                <TextBlock Text="{Binding DownloadStatus}"
-                                           FontSize="11"
-                                           Foreground="#4CAF50"
-                                           FontWeight="SemiBold"
-                                           Margin="0,2,0,0">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsDownloading}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                <DataTrigger Binding="{Binding IsUploading}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
+
+                                <!-- Upload status - hiện khi đang upload -->
+                                <TextBlock Text="{Binding UploadStatus}"
+                                   FontSize="11"
+                                   Foreground="#FF9800"
+                                   FontWeight="SemiBold"
+                                   Margin="0,2,0,0"
+                                   Visibility="{Binding IsUploading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                                <!-- Download status - hiện khi đang download -->
+                                <TextBlock Text="{Binding DownloadStatus}"
+                                   FontSize="11"
+                                   Foreground="#4CAF50"
+                                   FontWeight="SemiBold"
+                                   Margin="0,2,0,0"
+                                   Visibility="{Binding IsDownloading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             </StackPanel>
 
-                            <!-- Download button - ẩn khi đang download -->
+                            <!-- Download button - ẩn khi đang upload/download -->
                             <Button Grid.Column="2"
-                                    Command="{Binding DataContext.DownloadFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding}"
-                                    Background="#4CAF50"
-                                    Foreground="White"
-                                    BorderThickness="0"
-                                    Padding="12,8"
-                                    Cursor="Hand"
-                                    VerticalAlignment="Center">
+                            Command="{Binding DataContext.DownloadFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            CommandParameter="{Binding}"
+                            Background="#4CAF50"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Padding="12,8"
+                            Cursor="Hand"
+                            VerticalAlignment="Center">
                                 <Button.Style>
                                     <Style TargetType="Button">
                                         <Setter Property="Visibility" Value="Visible"/>
                                         <Setter Property="Background" Value="#4CAF50"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsDownloading}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsUploading}" Value="True">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                             <Trigger Property="IsMouseOver" Value="True">
@@ -147,10 +152,10 @@
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border Background="{TemplateBinding Background}"
-                                                CornerRadius="6"
-                                                Padding="{TemplateBinding Padding}">
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
                                             <ContentPresenter HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center"/>
+                                                      VerticalAlignment="Center"/>
                                         </Border>
                                     </ControlTemplate>
                                 </Button.Template>
@@ -161,51 +166,38 @@
                             </Button>
                         </Grid>
 
-                        <!-- Progress bar (hiện khi đang download) -->
+                        <!-- UPLOAD Progress bar (hiện khi đang upload) -->
                         <StackPanel Grid.Row="1" 
-                                    Margin="0,12,0,0">
-                            <StackPanel.Style>
-                                <Style TargetType="StackPanel">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsDownloading}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </StackPanel.Style>
-
+                            Margin="0,12,0,0"
+                            Visibility="{Binding IsUploading, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Progress text bên trái -->
                                 <TextBlock Grid.Column="0"
-                                           Text="{Binding DownloadStatus}"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="#4CAF50"
-                                           VerticalAlignment="Center"/>
+                                   Text="{Binding UploadStatus}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="#FF9800"
+                                   VerticalAlignment="Center"/>
 
-                                <!-- Percent bên phải -->
                                 <TextBlock Grid.Column="1"
-                                           Text="{Binding DownloadProgressText}"
-                                           FontSize="12"
-                                           FontWeight="Bold"
-                                           Foreground="#4CAF50"
-                                           Margin="8,0,0,0"/>
+                                   Text="{Binding UploadProgressText}"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   Foreground="#FF9800"
+                                   Margin="8,0,0,0"/>
                             </Grid>
 
-                            <!-- Simple Progress bar without converter -->
-                            <ProgressBar Value="{Binding DownloadProgress}"
-                                         Maximum="100"
-                                         Height="8"
-                                         Margin="0,6,0,0"
-                                         Foreground="#4CAF50"
-                                         Background="#E0E0E0"
-                                         BorderThickness="0">
+                            <ProgressBar Value="{Binding UploadProgress}"
+                                 Maximum="100"
+                                 Height="8"
+                                 Margin="0,6,0,0"
+                                 Foreground="#FF9800"
+                                 Background="#FFE0B2"
+                                 BorderThickness="0">
                                 <ProgressBar.Style>
                                     <Style TargetType="ProgressBar">
                                         <Setter Property="Template">
@@ -213,13 +205,66 @@
                                                 <ControlTemplate TargetType="ProgressBar">
                                                     <Grid>
                                                         <Border x:Name="PART_Track"
-                                                                Background="#E0E0E0" 
-                                                                CornerRadius="4"/>
+                                                        Background="#FFE0B2" 
+                                                        CornerRadius="4"/>
                                                         <Border x:Name="PART_Indicator"
-                                                                Background="#4CAF50" 
-                                                                CornerRadius="4"
-                                                                HorizontalAlignment="Left">
-                                                        </Border>
+                                                        Background="#FF9800" 
+                                                        CornerRadius="4"
+                                                        HorizontalAlignment="Left"/>
+                                                    </Grid>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+                        </StackPanel>
+
+                        <!-- DOWNLOAD Progress bar (hiện khi đang download) -->
+                        <StackPanel Grid.Row="1" 
+                            Margin="0,12,0,0"
+                            Visibility="{Binding IsDownloading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0"
+                                   Text="{Binding DownloadStatus}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="#4CAF50"
+                                   VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Column="1"
+                                   Text="{Binding DownloadProgressText}"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   Foreground="#4CAF50"
+                                   Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <ProgressBar Value="{Binding DownloadProgress}"
+                                 Maximum="100"
+                                 Height="8"
+                                 Margin="0,6,0,0"
+                                 Foreground="#4CAF50"
+                                 Background="#E0E0E0"
+                                 BorderThickness="0">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ProgressBar">
+                                                    <Grid>
+                                                        <Border x:Name="PART_Track"
+                                                        Background="#E0E0E0" 
+                                                        CornerRadius="4"/>
+                                                        <Border x:Name="PART_Indicator"
+                                                        Background="#4CAF50" 
+                                                        CornerRadius="4"
+                                                        HorizontalAlignment="Left"/>
                                                     </Grid>
                                                 </ControlTemplate>
                                             </Setter.Value>
@@ -232,6 +277,7 @@
                 </Border>
             </StackPanel>
         </DataTemplate>
+
     </Window.Resources>
 
     <Grid>

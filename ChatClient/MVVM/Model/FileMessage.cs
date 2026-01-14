@@ -99,7 +99,7 @@ namespace ChatClient.MVVM.Model
                 _downloadProgress = value;
                 OnPropertyChanged(nameof(DownloadProgress));
                 OnPropertyChanged(nameof(DownloadProgressRemaining));
-                OnPropertyChanged(nameof(DownloadProgressText)); // FIX: Thêm dòng này
+                OnPropertyChanged(nameof(DownloadProgressText));
             }
         }
 
@@ -125,11 +125,45 @@ namespace ChatClient.MVVM.Model
         }
 
         public int DownloadProgressRemaining => 100 - DownloadProgress;
-
-        // FIX: Chuyển thành property để notify khi thay đổi
         public string DownloadProgressText => $"{DownloadProgress}%";
 
-        // Helper method để lấy icon phù hợp dựa trên extension
+        private int _uploadProgress;
+        private bool _isUploading;
+        private string _uploadStatus;
+
+        public int UploadProgress
+        {
+            get => _uploadProgress;
+            set
+            {
+                _uploadProgress = value;
+                OnPropertyChanged(nameof(UploadProgress));
+                OnPropertyChanged(nameof(UploadProgressText));
+            }
+        }
+
+        public bool IsUploading
+        {
+            get => _isUploading;
+            set
+            {
+                _isUploading = value;
+                OnPropertyChanged(nameof(IsUploading));
+                OnPropertyChanged(nameof(FileExtension));
+            }
+        }
+
+        public string UploadStatus
+        {
+            get => _uploadStatus;
+            set
+            {
+                _uploadStatus = value;
+                OnPropertyChanged(nameof(UploadStatus));
+            }
+        }
+
+        public string UploadProgressText => $"{UploadProgress}%";
         public static string GetFileIcon(string extension)
         {
             return extension?.ToLower() switch
