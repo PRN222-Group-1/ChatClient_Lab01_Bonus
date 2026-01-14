@@ -57,12 +57,6 @@ namespace ChatServer
                 {
                     byte opcode = _packetReader.ReadByte();
 
-                    // Log để debug
-                    if (opcode != 5 && opcode != 16) // Không log quá nhiều cho message và chunk
-                    {
-                        Console.WriteLine($"{DateTime.Now}: {Username} - Received opcode: {opcode}");
-                    }
-
                     switch (opcode)
                     {
                         case 5: // Message
